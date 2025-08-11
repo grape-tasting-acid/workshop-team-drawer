@@ -262,19 +262,20 @@ st.markdown(
     .badge{padding:2px 8px;border-radius:999px;color:#fff;font-size:12px}
     .badge-ob{background:#1f77b4}.badge-yb{background:#2ca02c}.badge-girls{background:#d62728}
     /* Roulette styles */
-    .roulette{background:linear-gradient(135deg,#fff7ed,#eef2ff);border:1px solid #e5e7eb;border-radius:14px;padding:14px 16px;margin:8px 0;text-align:center;animation:pulse .8s ease-in-out infinite alternate; height:100%;}
+    .roulette{background:linear-gradient(135deg,#fff7ed,#eef2ff);border:1px solid #e5e7eb;border-radius:14px;padding:14px 16px;margin:8px 0;text-align:center;animation:pulse .8s ease-in-out infinite alternate;box-sizing:border-box;min-height:140px}
     .roulette .label{font-size:12px;color:#666;margin-bottom:6px}
-    .slots{display:flex;justify-content:center;gap:12px}
+    .slots{display:flex;justify-content:center;align-items:center;gap:12px;height:calc(100% - 26px)}
     .slot-col{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px;min-width:140px}
     .roulette-name{font-size:22px;font-weight:800;letter-spacing:.5px;color:#111}
     @keyframes pulse{from{transform:scale(1);box-shadow:0 0 0 rgba(0,0,0,0)}to{transform:scale(1.02);box-shadow:0 6px 20px rgba(0,0,0,.06)}}
     @keyframes glow{from{box-shadow:0 0 0 0 rgba(245,158,11,.0)}to{box-shadow:0 0 0 6px rgba(245,158,11,.15)}}
-    .slots-row{display:flex;align-items:stretch;justify-content:center;gap:16px}
-    .team-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#fff7ed,#eef2ff);border:1px solid #e5e7eb;border-radius:14px;padding:14px 16px;min-width:180px;animation:pulse .8s ease-in-out infinite alternate;height:100%}
+    .slots-row{display:flex;align-items:stretch;justify-content:center;gap:16px;margin:12px 0 20px}
+    .slots-row .roulette, .slots-row .team-slot{margin:0}
+    .team-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#fff7ed,#eef2ff);border:1px solid #e5e7eb;border-radius:14px;padding:14px 16px;min-width:180px;animation:pulse .8s ease-in-out infinite alternate;box-sizing:border-box;min-height:140px}
     .team-slot .label{font-size:12px;color:#666;margin-bottom:6px}
     .team-slot .team-name{font-size:22px;font-weight:800;color:#111}
     .jackpot{animation:jackpot .9s ease-in-out 2}
-    @keyframes jackpot{0%{transform:scale(1)}50%{transform:scale(1.1);box-shadow:0 0 0 6px rgba(245,158,11,.15)}100%{transform:scale(1)}}
+    @keyframes jackpot{0%{transform:scale(1)}50%{transform:scale(1.03);box-shadow:0 0 0 6px rgba(245,158,11,.15)}100%{transform:scale(1)}}
     /* Confetti particles */
     .roulette.jackpot{position:relative;}
     .particles{position:absolute;inset:0;pointer-events:none;overflow:visible}
@@ -387,16 +388,13 @@ if st.button("추첨 시작", type="primary"):
                 unsafe_allow_html=True,
             )
 
-        # 라운드로빈 + 라운드별 팀 순서 셔플 공개 순서 만들기 (랜덤성 강화)
-        max_len = max(len(t.members) for t in teams)
+        # 완전 랜덤 공개 순서 만들기 (팀 균형 무시, 결과적으로만 맞춤)
         reveal_queue: List[Tuple[int, Member]] = []
-        for r in range(max_len):
-            order = list(range(8))
-            random.shuffle(order)
-            for i in order:
-                t = teams[i]
-                if r < len(t.members):
-                    reveal_queue.append((i, t.members[r]))
+        for i, t in enumerate(teams):
+            for m in t.members:
+                reveal_queue.append((i, m))
+        anim_rng = random.Random(seed_val if seed_val is not None else int(time.time()))
+        anim_rng.shuffle(reveal_queue)
 
         # 팀별 누적 HTML
         team_lines: List[List[str]] = [[] for _ in range(8)]
@@ -413,10 +411,10 @@ if st.button("추첨 시작", type="primary"):
                 cycles = 10 + slowmo_factor * 3
                 team_target_num = teams[ti].index + 1
                 for k in range(cycles):
-                    s1 = random.choice(remaining_names) if remaining_names else mem.name
-                    s2 = random.choice(remaining_names) if remaining_names else mem.name
-                    s3 = random.choice(remaining_names) if remaining_names else mem.name
-                    tnum = str(random.randint(1,8))
+                    s1 = anim_rng.choice(remaining_names) if remaining_names else mem.name
+                    s2 = anim_rng.choice(remaining_names) if remaining_names else mem.name
+                    s3 = anim_rng.choice(remaining_names) if remaining_names else mem.name
+                    tnum = str(anim_rng.randint(1,8))
                     # 점점 실제 결과에 수렴
                     if k > cycles * 0.6:
                         if k % 2 == 0:
@@ -426,7 +424,7 @@ if st.button("추첨 시작", type="primary"):
                     spotlight_bar.markdown(
                         f"""
                         <div class='slots-row'>
-                          <div class='roulette'>
+                          <div class='roulette' style='width:520px'>
                             <div class='label'>Who's next?</div>
                             <div class='slots'>
                               <div class='slot-col'><div class='roulette-name'>🎲 {s1}</div></div>
@@ -434,7 +432,7 @@ if st.button("추첨 시작", type="primary"):
                               <div class='slot-col'><div class='roulette-name'>🎲 {s3}</div></div>
                             </div>
                           </div>
-                          <div class='team-slot'>
+                          <div class='team-slot' style='width:220px'>
                             <div class='label'>Which team?</div>
                             <div class='team-name'>{tnum}</div>
                           </div>
@@ -447,11 +445,11 @@ if st.button("추첨 시작", type="primary"):
                 # 잭팟 + 컨페티 파티클 18개 렌더
                 particles = []
                 for i in range(18):
-                    dx = random.randint(-160, 160)
-                    dy = random.randint(-80, 140)
-                    size = random.randint(6, 12)
-                    hue = random.randint(0, 360)
-                    delay = random.randint(0, 200)
+                    dx = anim_rng.randint(-160, 160)
+                    dy = anim_rng.randint(-80, 140)
+                    size = anim_rng.randint(6, 12)
+                    hue = anim_rng.randint(0, 360)
+                    delay = anim_rng.randint(0, 200)
                     particles.append(
                         f"<span class='particle' style='--dx:{dx}px;--dy:{dy}px;--size:{size}px;--hue:{hue};--delay:{delay}ms'></span>"
                     )
@@ -459,7 +457,7 @@ if st.button("추첨 시작", type="primary"):
                 spotlight_bar.markdown(
                     f"""
                     <div class='slots-row'>
-                      <div class='roulette jackpot'>
+                      <div class='roulette jackpot' style='width:520px'>
                         <div class='particles'>{particles_html}</div>
                         <div class='label'>Selected!</div>
                         <div class='slots'>
@@ -468,7 +466,7 @@ if st.button("추첨 시작", type="primary"):
                           <div class='slot-col'><div class='roulette-name'>🎉 {mem.name}</div></div>
                         </div>
                       </div>
-                      <div class='team-slot'>
+                      <div class='team-slot' style='width:220px'>
                         <div class='label'>Which team?</div>
                         <div class='team-name'>{team_target_num}</div>
                       </div>
@@ -493,7 +491,7 @@ if st.button("추첨 시작", type="primary"):
             except ValueError:
                 pass
             if dramatic and (idx % 7 == 6):
-                toast(random.choice(QUIPS))
+                toast(anim_rng.choice(QUIPS))
 
         # 요약 통계
         st.divider()
