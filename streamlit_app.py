@@ -255,53 +255,32 @@ st.markdown(
     .team-card.highlight{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.25);animation:glow .8s ease-in-out 2 alternate}
     .team-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
     .team-title{font-weight:700;font-size:18px}
-    .leader-chip{background:#eef2ff;border:1px solid #c7d2fe;color:#1f2937;border-radius:8px;padding:6px 8px;margin-bottom:8px;display:inline-block}
+    .leader-chip{background:transparent;border:none;color:#0f172a;border-radius:0;padding:0;margin:4px 0 8px;display:flex;align-items:center;gap:8px}
+    .leader-crown{display:inline-flex;align-items:center;justify-content:center;font-size:18px;line-height:1}
     .member-list{display:flex;flex-direction:column;gap:6px}
     .member-item{display:flex;align-items:center;gap:8px}
+    .member-name{font-size:16px;font-weight:400;color:#0f172a}
+    .leader-name{font-size:20px;font-weight:800;color:#0f172a}
+    .leader-label{display:inline-flex;align-items:center;justify-content:center;width:64px;padding:2px 8px;margin:0;border-radius:999px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;background:#fde68a;border:1px solid #f59e0b;color:#78350f}
     .count-chip{background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:3px 10px;font-size:12px;margin-left:6px;color:#111}
-    .badge{padding:2px 8px;border-radius:999px;color:#fff;font-size:12px}
+    .badge{display:inline-flex;align-items:center;justify-content:center;width:64px;padding:2px 8px;border-radius:999px;color:#fff;font-size:12px}
     .badge-ob{background:#1f77b4}.badge-yb{background:#2ca02c}.badge-girls{background:#d62728}
-    /* Roulette styles */
-    .roulette{background:linear-gradient(135deg,#fff7ed,#eef2ff);border:1px solid #e5e7eb;border-radius:14px;padding:14px 16px;margin:8px 0;text-align:center;animation:pulse .8s ease-in-out infinite alternate;box-sizing:border-box;min-height:140px}
-    .roulette .label{font-size:12px;color:#666;margin-bottom:6px}
-    .slots{display:flex;justify-content:center;align-items:center;gap:12px;height:calc(100% - 26px)}
-    .slot-col{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px;min-width:140px}
-    .slot-window{height:40px;overflow:hidden;position:relative}
-    .reel-track{display:flex;flex-direction:column;animation:reel-spin var(--dur,0.9s) linear infinite;will-change:transform}
-    .reel-track.slow{animation:reel-slow var(--dur,1.4s) cubic-bezier(.2,.8,.2,1) 1 forwards}
-    .reel-track.stopped{animation:none !important;transform:translateY(0)}
-    .reel-track .roulette-name{padding:0}
-    .roulette-name{font-size:22px;font-weight:800;letter-spacing:.5px;color:#111;height:40px;line-height:40px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    @keyframes pulse{from{transform:scale(1);box-shadow:0 0 0 rgba(0,0,0,0)}to{transform:scale(1.02);box-shadow:0 6px 20px rgba(0,0,0,.06)}}
     @keyframes glow{from{box-shadow:0 0 0 0 rgba(245,158,11,.0)}to{box-shadow:0 0 0 6px rgba(245,158,11,.15)}}
-    @keyframes reel-spin{from{transform:translateY(0)}to{transform:translateY(-50%)}}
-    @keyframes reel-slow{from{transform:translateY(0)}to{transform:translateY(-50%)}}
-    .slots-row{display:flex;align-items:stretch;justify-content:center;gap:16px;margin:12px 0 20px}
-    .slots-row .roulette, .slots-row .team-slot{margin:0}
-    .team-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#fff7ed,#eef2ff);border:1px solid #e5e7eb;border-radius:14px;padding:14px 16px;min-width:180px;animation:pulse .8s ease-in-out infinite alternate;box-sizing:border-box;min-height:140px}
-    .team-slot .label{font-size:12px;color:#666;margin-bottom:6px}
-    .team-slot .team-name{font-size:22px;font-weight:800;color:#111}
-    .jackpot{animation:jackpot .9s ease-in-out 2}
-    @keyframes jackpot{0%{transform:scale(1)}50%{transform:scale(1.03);box-shadow:0 0 0 6px rgba(245,158,11,.15)}100%{transform:scale(1)}}
-    /* Confetti particles */
-    .roulette.jackpot{position:relative;}
-    .particles{position:absolute;inset:0;pointer-events:none;overflow:visible}
-    .particle{position:absolute;top:50%;left:50%;width:var(--size,8px);height:var(--size,8px);border-radius:50%;background:hsl(var(--hue,40),85%,55%);opacity:0;animation:burst .9s ease-out forwards;animation-delay:var(--delay,0ms)}
-    @keyframes burst{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}10%{opacity:.95}100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,0px))) scale(.95)}}
-    /* Spotlight */
-    .spotlight{background:linear-gradient(90deg,#f0f9ff,#ecfeff);border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;margin:6px 0;text-align:center}
-    .spotlight strong{font-size:22px}
+    .spotlight{background:linear-gradient(135deg,#f0f9ff,#e9d5ff);border:1px solid #e5e7eb;border-radius:14px;padding:16px 18px;margin:8px 0;text-align:center;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+    .spotlight .label{font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+    .spotlight strong{font-size:32px;color:#0f172a}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 def group_badge(group: str) -> str:
+    label = group.upper()
     cls = f"badge badge-{group}"
-    return f'<span class="{cls}">{group}</span>'
+    return f'<span class="{cls}">{label}</span>'
 
 def member_item_html(mem: Member) -> str:
-    return f'<div class="member-item"><span>{mem.name}</span> {group_badge(mem.group)}</div>'
+    return f'<div class="member-item">{group_badge(mem.group)}<span class="member-name">{mem.name}</span></div>'
 
 def build_team_card_html(team_idx: int, leader: Member, members: List[Member]) -> str:
     total = 1 + len(members)
@@ -321,7 +300,7 @@ def build_team_card_html(team_idx: int, leader: Member, members: List[Member]) -
         f'    <div class="team-title">Team {team_idx + 1}</div>'
         f'    <div>{header_counts}</div>'
         f'  </div>'
-        f'  <div class="leader-chip">👑 Leader: {leader.name}</div>'
+        f'  <div class="leader-chip"><span class="leader-label">LEADER</span><span class="leader-name">{leader.name}</span><span class="leader-crown"> 👑</span></div>'
         f'  <div class="member-list">{members_html}</div>'
         f'</div>'
     )
@@ -329,283 +308,185 @@ def build_team_card_html(team_idx: int, leader: Member, members: List[Member]) -
 
 st.title("워크샵 조 추첨기")
 
-col_seed, col_opts, col_hint = st.columns([1, 2, 3])
-with col_seed:
-    seed_str = st.text_input("Seed (선택)", value="")
-with col_opts:
-    dramatic = st.checkbox("드라마틱 모드", True)
-    speed_ms = st.slider("애니메이션 속도(ms, 1인)", 80, 1500, 350, 10)
-    slowmo_factor = st.slider("슬로모션 강도", 1, 5, 2)
-    suspense = st.checkbox("스포트라이트(한 명씩 크게)", True)
-    drumroll = st.checkbox("드럼롤 효과 텍스트", True)
-    max_anim = st.slider("최대 애니메이션 인원", 16, 128, 64, 4)
-with col_hint:
+# 세션 상태 초기화
+for _k in ["leaders_bytes", "ob_bytes", "yb_bytes", "girls_bytes", "seed_str", "teams_result"]:
+    st.session_state.setdefault(_k, None)
+
+tab_settings, tab_draw = st.tabs(["설정", "추첨/결과"]) 
+
+with tab_settings:
+    st.subheader("설정")
     st.caption("CSV는 UTF-8 인코딩 권장. 헤더: leaders=name,gender / ob,yb,girls=name")
+    st.session_state["seed_str"] = st.text_input(
+        "Seed (선택)", value=st.session_state.get("seed_str") or ""
+    )
+    col_t1, col_t2 = st.columns(2)
+    with col_t1:
+        st.session_state["highlight_sec"] = st.slider(
+            "하이라이트 시간(초)", min_value=0.0, max_value=1.0,
+            value=float(st.session_state.get("highlight_sec") or 0.15), step=0.01
+        )
+    with col_t2:
+        st.session_state["interval_sec"] = st.slider(
+            "노출 텀(초)", min_value=0.0, max_value=1.0,
+            value=float(st.session_state.get("interval_sec") or 0.24), step=0.01
+        )
+    st.divider()
+    st.write("파일 업로드 또는 기본 파일 사용")
+    leaders_bytes = read_default_or_upload("Leaders", DATA_DIR / "leaders.csv")
+    ob_bytes = read_default_or_upload("OB", DATA_DIR / "ob.csv")
+    yb_bytes = read_default_or_upload("YB", DATA_DIR / "yb.csv")
+    girls_bytes = read_default_or_upload("Girls", DATA_DIR / "girls.csv")
 
-status_ph = st.empty()
+    st.session_state["leaders_bytes"] = leaders_bytes
+    st.session_state["ob_bytes"] = ob_bytes
+    st.session_state["yb_bytes"] = yb_bytes
+    st.session_state["girls_bytes"] = girls_bytes
 
-leaders_bytes = read_default_or_upload("Leaders", DATA_DIR / "leaders.csv")
-ob_bytes = read_default_or_upload("OB", DATA_DIR / "ob.csv")
-yb_bytes = read_default_or_upload("YB", DATA_DIR / "yb.csv")
-girls_bytes = read_default_or_upload("Girls", DATA_DIR / "girls.csv")
-
-if st.button("추첨 시작", type="primary"):
     try:
-        status_ph.info("추첨 중...")
-        leaders = read_leaders_csv_from_bytes(leaders_bytes)
-        ob_list = read_names_csv_from_bytes(ob_bytes, group="ob", gender="M")
-        yb_list = read_names_csv_from_bytes(yb_bytes, group="yb", gender="M")
-        girls_list = read_names_csv_from_bytes(girls_bytes, group="girls", gender="F")
+        leaders_preview = read_leaders_csv_from_bytes(leaders_bytes) if leaders_bytes else []
+        ob_preview = read_names_csv_from_bytes(ob_bytes, group="ob", gender="M") if ob_bytes else []
+        yb_preview = read_names_csv_from_bytes(yb_bytes, group="yb", gender="M") if yb_bytes else []
+        girls_preview = read_names_csv_from_bytes(girls_bytes, group="girls", gender="F") if girls_bytes else []
+        st.info(
+            f"리더 {len(leaders_preview)}명, OB {len(ob_preview)}명, YB {len(yb_preview)}명, Girls {len(girls_preview)}명"
+        )
+    except Exception as e:
+        st.warning(str(e))
 
-        # 리더와 일반 인원 중복 이름 제거
-        leader_names = {m.name for m in leaders}
-        before_counts = (len(ob_list), len(yb_list), len(girls_list))
-        ob_list = [m for m in ob_list if m.name not in leader_names]
-        yb_list = [m for m in yb_list if m.name not in leader_names]
-        girls_list = [m for m in girls_list if m.name not in leader_names]
-        after_counts = (len(ob_list), len(yb_list), len(girls_list))
-        if before_counts != after_counts:
-            removed_ob = before_counts[0] - after_counts[0]
-            removed_yb = before_counts[1] - after_counts[1]
-            removed_girls = before_counts[2] - after_counts[2]
-            st.info(
-                f"리더와 중복된 이름을 제외했습니다. 제거됨 - OB:{removed_ob}, YB:{removed_yb}, Girls:{removed_girls}"
-            )
+with tab_draw:
+    st.subheader("추첨/결과")
+    status_ph = st.empty()
+    if st.button("추첨 실행", type="primary"):
+        try:
+            status_ph.info("추첨 중…")
+            leaders_bytes = st.session_state.get("leaders_bytes") or read_csv_from_disk(DATA_DIR / "leaders.csv")
+            ob_bytes = st.session_state.get("ob_bytes") or read_csv_from_disk(DATA_DIR / "ob.csv")
+            yb_bytes = st.session_state.get("yb_bytes") or read_csv_from_disk(DATA_DIR / "yb.csv")
+            girls_bytes = st.session_state.get("girls_bytes") or read_csv_from_disk(DATA_DIR / "girls.csv")
 
-        seed_val: Optional[int] = int(seed_str) if seed_str.strip() else None
-        teams = assign_members_to_teams(leaders, ob_list, yb_list, girls_list, seed=seed_val)
+            leaders = read_leaders_csv_from_bytes(leaders_bytes)
+            ob_list = read_names_csv_from_bytes(ob_bytes, group="ob", gender="M")
+            yb_list = read_names_csv_from_bytes(yb_bytes, group="yb", gender="M")
+            girls_list = read_names_csv_from_bytes(girls_bytes, group="girls", gender="F")
 
-        # 결과 표시 (2행 그리드 + 드라마틱 모드)
-        status_ph.success("추첨 완료!")
+            leader_names = {m.name for m in leaders}
+            before_counts = (len(ob_list), len(yb_list), len(girls_list))
+            ob_list = [m for m in ob_list if m.name not in leader_names]
+            yb_list = [m for m in yb_list if m.name not in leader_names]
+            girls_list = [m for m in girls_list if m.name not in leader_names]
+            after_counts = (len(ob_list), len(yb_list), len(girls_list))
+            if before_counts != after_counts:
+                removed_ob = before_counts[0] - after_counts[0]
+                removed_yb = before_counts[1] - after_counts[1]
+                removed_girls = before_counts[2] - after_counts[2]
+                st.info(
+                    f"리더와 중복된 이름을 제외했습니다. 제거됨 - OB:{removed_ob}, YB:{removed_yb}, Girls:{removed_girls}"
+                )
 
-        # 팀 컨테이너 준비 (상단 텍스트 헤더 제거, 카드만 렌더)
+            seed_str = st.session_state.get("seed_str") or ""
+            seed_val: Optional[int] = int(seed_str) if seed_str.strip() else None
+            teams = assign_members_to_teams(leaders, ob_list, yb_list, girls_list, seed=seed_val)
+
+            st.session_state["teams_result"] = teams
+            st.session_state["reveal_pending"] = True
+            status_ph.info("추첨 중…")
+        except Exception as e:
+            status_ph.empty()
+            st.error(str(e))
+
+    teams_draw = st.session_state.get("teams_result")
+    if teams_draw:
+        st.divider()
+        # 전광판(상단)
+        spotlight = st.empty()
+        # 팀 카드 자리(리더만 먼저 표시)
         team_placeholders: List[st.delta_generator.DeltaGenerator] = []
-        # 상단 고정 스포트라이트 바 (룰렛/최종 확정 모두 여기서 표시)
-        spotlight_bar = st.empty()
         for row_start in (0, 4):
             cols = st.columns(4)
             for j in range(4):
                 with cols[j]:
                     ph = st.empty()
                     team_placeholders.append(ph)
-        # 리더/빈 멤버 카드 미리 렌더
         for i in range(8):
             team_placeholders[i].markdown(
-                build_team_card_html(teams[i].index, teams[i].leader, []),
+                build_team_card_html(teams_draw[i].index, teams_draw[i].leader, []),
                 unsafe_allow_html=True,
             )
 
-        # 완전 랜덤 공개 순서 만들기 (팀 균형 무시, 결과적으로만 맞춤)
-        reveal_queue: List[Tuple[int, Member]] = []
-        for i, t in enumerate(teams):
-            for m in t.members:
-                reveal_queue.append((i, m))
-        anim_rng = random.Random(seed_val if seed_val is not None else int(time.time()))
-        anim_rng.shuffle(reveal_queue)
-
-        # 팀별 누적 HTML
-        team_lines: List[List[str]] = [[] for _ in range(8)]
-
-        def render_team(i: int):
-            html = build_team_card_html(teams[i].index, teams[i].leader, [m for m in teams[i].members if f"• {m.name}" in "\n".join(team_lines[i])])
-            team_placeholders[i].markdown(html, unsafe_allow_html=True)
-
-        # 드라마틱 모드: 일부만 애니메이션, 나머지는 즉시 렌더
-        remaining_names = [m.name for _, m in reveal_queue]
-        for idx, (ti, mem) in enumerate(reveal_queue):
-            if dramatic and idx < max_anim:
-                # 슬롯머신 스타일: 이름 3열 + 팀 슬롯(숫자만) 별도 박스, 같은 행에 배치
-                cycles = 10 + slowmo_factor * 3
-                team_target_num = teams[ti].index + 1
-                # 슬롯 리본이 굴러가는 연속 애니메이션 (한 번 렌더 후 지정 시간 대기)
-                # 각 릴에 실제 이름 목록을 사용하여 시퀀스 구성
-                def build_items_html(pool: List[str], size: int = 14) -> str:
-                    if not pool:
-                        pool = [mem.name]
-                    items = [anim_rng.choice(pool) for _ in range(size)]
-                    # 후보의 실제 당첨자 이름을 가끔 섞어 노출
-                    for _ in range(max(1, size // 4)):
-                        items[anim_rng.randrange(size)] = mem.name
-                    items_html = "".join(f"<div class='roulette-name'>🎲 {x}</div>" for x in items)
-                    # 무한루프 자연스러움을 위해 2회 반복
-                    return items_html + items_html
-
-                def build_nums_html(size: int = 8) -> str:
-                    nums = [str(anim_rng.randint(1,8)) for _ in range(size)]
-                    # 가끔 실제 팀 번호 힌트 노출
-                    for _ in range(max(1, size // 5)):
-                        nums[anim_rng.randrange(size)] = str(team_target_num)
-                    nums_html = "".join(f"<div class='roulette-name'>{n}</div>" for n in nums)
-                    return nums_html + nums_html
-
-                dur1 = max(0.7, (speed_ms / 1000) * (1.4 + 0.25 * slowmo_factor))
-                dur2 = dur1 * 1.12
-                dur3 = dur1 * 1.24
-                dur_team = dur1 * 1.05
-
-                col1 = f"<div class='slot-col'><div class='slot-window'><div class='reel-track' style='animation-duration:{dur1:.2f}s'>{build_items_html(remaining_names)}</div></div></div>"
-                col2 = f"<div class='slot-col'><div class='slot-window'><div class='reel-track' style='animation-duration:{dur2:.2f}s'>{build_items_html(remaining_names)}</div></div></div>"
-                col3 = f"<div class='slot-col'><div class='slot-window'><div class='reel-track' style='animation-duration:{dur3:.2f}s'>{build_items_html(remaining_names)}</div></div></div>"
-                team_reel = f"<div class='slot-window'><div class='reel-track' style='animation-duration:{dur_team:.2f}s'>{build_nums_html(10)}</div></div>"
-
-                html_spin = (
-                    f"<div class='slots-row'>"
-                    f"<div class='roulette' style='width:520px'>"
-                    f"<div class='label'>Who's next?</div>"
-                    f"<div class='slots'>{col1}{col2}{col3}</div>"
-                    f"</div>"
-                    f"<div class='team-slot' style='width:220px'>"
-                    f"<div class='label'>Which team?</div>"
-                    f"{team_reel}"
-                    f"</div>"
-                    f"</div>"
-                )
-                spotlight_bar.markdown(html_spin, unsafe_allow_html=True)
-                time.sleep(max(dur1, dur2, dur3, dur_team) + 0.1)
-                # 감속 단계: 같은 릴을 느리게 1회 재생하여 멈추는 느낌 연출 (자연스러운 정지 위치 = 당첨자/팀)
-                def build_items_html_to_target(pool: List[str], target: str, size: int = 14) -> str:
-                    if not pool:
-                        pool = [target]
-                    base = [anim_rng.choice(pool) for _ in range(size)]
-                    for _ in range(max(1, size // 5)):
-                        base[anim_rng.randrange(size)] = target
-                    seq = base + base
-                    seq[size] = target  # 절반 지점에서 멈출 때 맨 위가 target이 되도록
-                    return "".join(f"<div class='roulette-name'>🎲 {x}</div>" for x in seq)
-
-                def build_nums_html_to_target(target: str, size: int = 10) -> str:
-                    base = [str(anim_rng.randint(1,8)) for _ in range(size)]
-                    for _ in range(max(1, size // 5)):
-                        base[anim_rng.randrange(size)] = target
-                    seq = base + base
-                    seq[size] = target
-                    return "".join(f"<div class='roulette-name'>{x}</div>" for x in seq)
-
-                slow1 = dur1 * (1.6 + 0.15 * slowmo_factor)
-                slow2 = dur2 * (1.7 + 0.15 * slowmo_factor)
-                slow3 = dur3 * (1.8 + 0.15 * slowmo_factor)
-                slow_team = dur_team * (1.65 + 0.15 * slowmo_factor)
-
-                col1_html = build_items_html_to_target(remaining_names, mem.name)
-                col2_html = build_items_html_to_target(remaining_names, mem.name)
-                col3_html = build_items_html_to_target(remaining_names, mem.name)
-                team_html = build_nums_html_to_target(str(team_target_num))
-
-                def render_spin(col1, col2, col3, team_part, jackpot=False):
-                    particles_html = ""
-                    roulette_cls = "roulette"
-                    if jackpot:
-                        # 잔잔한 축하 효과만 추가 (레이아웃 유지)
-                        parts = []
-                        for i in range(18):
-                            dx = anim_rng.randint(-160, 160)
-                            dy = anim_rng.randint(-80, 140)
-                            size = anim_rng.randint(6, 12)
-                            hue = anim_rng.randint(0, 360)
-                            delay = anim_rng.randint(0, 200)
-                            parts.append(
-                                f"<span class='particle' style='--dx:{dx}px;--dy:{dy}px;--size:{size}px;--hue:{hue};--delay:{delay}ms'></span>"
-                            )
-                        particles_html = "<div class='particles'>" + "".join(parts) + "</div>"
-                        roulette_cls = "roulette jackpot"
-                    html = (
-                        f"<div class='slots-row'>"
-                        f"<div class='{roulette_cls}' style='width:520px'>"
-                        f"{particles_html}"
-                        f"<div class='label'>Who's next?</div>"
-                        f"<div class='slots'>{col1}{col2}{col3}</div>"
-                        f"</div>"
-                        f"<div class='team-slot' style='width:220px'>"
-                        f"<div class='label'>Which team?</div>"
-                        f"{team_part}"
-                        f"</div>"
-                        f"</div>"
-                    )
-                    spotlight_bar.markdown(html, unsafe_allow_html=True)
-
-                # 1) 감속 시작: 모두 slow
-                col1_slow = f"<div class='slot-col'><div class='slot-window'><div class='reel-track slow' style='--dur:{slow1:.2f}s'>{col1_html}</div></div></div>"
-                col2_slow = f"<div class='slot-col'><div class='slot-window'><div class='reel-track slow' style='--dur:{slow2:.2f}s'>{col2_html}</div></div></div>"
-                col3_slow = f"<div class='slot-col'><div class='slot-window'><div class='reel-track slow' style='--dur:{slow3:.2f}s'>{col3_html}</div></div></div>"
-                team_slow = f"<div class='slot-window'><div class='reel-track slow' style='--dur:{slow_team:.2f}s'>{team_html}</div></div>"
-                render_spin(col1_slow, col2_slow, col3_slow, team_slow)
-                time.sleep(slow1)
-
-                # 2) 첫 릴 정지
-                col1_stop = f"<div class='slot-col'><div class='slot-window'><div class='reel-track stopped'><div class='roulette-name'>🎲 {mem.name}</div></div></div></div>"
-                rem2 = max(slow2 - slow1, 0.15)
-                rem3 = max(slow3 - slow1, 0.15)
-                rem_team = max(slow_team - slow1, 0.15)
-                col2_slow2 = f"<div class='slot-col'><div class='slot-window'><div class='reel-track slow' style='--dur:{rem2:.2f}s'>{col2_html}</div></div></div>"
-                col3_slow2 = f"<div class='slot-col'><div class='slot-window'><div class='reel-track slow' style='--dur:{rem3:.2f}s'>{col3_html}</div></div></div>"
-                team_slow2 = f"<div class='slot-window'><div class='reel-track slow' style='--dur:{rem_team:.2f}s'>{team_html}</div></div>"
-                render_spin(col1_stop, col2_slow2, col3_slow2, team_slow2)
-                time.sleep(rem2)
-
-                # 3) 두 번째 릴 정지
-                col2_stop = f"<div class='slot-col'><div class='slot-window'><div class='reel-track stopped'><div class='roulette-name'>🎲 {mem.name}</div></div></div></div>"
-                rem3_2 = max(slow3 - slow2, 0.15)
-                rem_team_2 = max(slow_team - slow2, 0.05)
-                col3_slow3 = f"<div class='slot-col'><div class='slot-window'><div class='reel-track slow' style='--dur:{rem3_2:.2f}s'>{col3_html}</div></div></div>"
-                team_slow3 = f"<div class='slot-window'><div class='reel-track slow' style='--dur:{rem_team_2:.2f}s'>{team_html}</div></div>"
-                render_spin(col1_stop, col2_stop, col3_slow3, team_slow3)
-                time.sleep(rem3_2)
-
-                # 4) 마지막 릴 + 팀 정지, 가벼운 축하 이펙트
-                col3_stop = f"<div class='slot-col'><div class='slot-window'><div class='reel-track stopped'><div class='roulette-name'>🎲 {mem.name}</div></div></div></div>"
-                team_stop = f"<div class='slot-window'><div class='reel-track stopped'><div class='roulette-name'>{team_target_num}</div></div></div>"
-                render_spin(col1_stop, col2_stop, col3_stop, team_stop, jackpot=True)
-            # 확정 출력(내부 상태에 추가)
-            team_lines[ti].append(f"• {mem.name}")
-            # 팀 카드 하이라이트 표시를 위해 클래스 토글 버전 렌더
-            # 간단 구현: 카드 전체를 재생성하면서 highlight 클래스 적용 후 잠깐 대기
-            html_temp = build_team_card_html(teams[ti].index, teams[ti].leader, [m for m in teams[ti].members if f"• {m.name}" in "\n".join(team_lines[ti])])
-            html_temp = html_temp.replace("team-card", "team-card highlight", 1)
-            team_placeholders[ti].markdown(html_temp, unsafe_allow_html=True)
-            time.sleep(0.08 * slowmo_factor)
-            render_team(ti)
-            if dramatic and idx < max_anim:
-                # 확정 후 잠깐의 텀
-                time.sleep(max(0.02, (speed_ms / 1000) * (0.35 + 0.1 * slowmo_factor)))
+        # 전광판 + 순차 공개(사용자 설정 속도)
+        highlight_sec = float(st.session_state.get("highlight_sec") or 0.15)
+        interval_sec = float(st.session_state.get("interval_sec") or 0.24)
+        if st.session_state.get("reveal_pending"):
+            status_ph.info("추첨 진행 중…")
+            revealed_by_team: List[List[Member]] = [[] for _ in range(8)]
+            reveal_order: List[Tuple[int, Member]] = []
+            for i, t in enumerate(teams_draw):
+                for m in t.members:
+                    reveal_order.append((i, m))
+            seed_txt = (st.session_state.get("seed_str") or "").strip()
             try:
-                remaining_names.remove(mem.name)
-            except ValueError:
-                pass
-            if dramatic and (idx % 7 == 6):
-                toast(anim_rng.choice(QUIPS))
+                seed_val_for_reveal = int(seed_txt) if seed_txt else None
+            except Exception:
+                seed_val_for_reveal = None
+            rng = random.Random(seed_val_for_reveal if seed_val_for_reveal is not None else int(time.time()))
+            rng.shuffle(reveal_order)
+
+            for _, (ti, mem) in enumerate(reveal_order):
+                spotlight.markdown(
+                    f"<div class='spotlight'><div class='label'>Who's next?</div><strong>{mem.name}</strong></div>",
+                    unsafe_allow_html=True,
+                )
+                revealed_by_team[ti].append(mem)
+                # 하이라이트 효과로 짧게 반짝
+                html_temp = build_team_card_html(teams_draw[ti].index, teams_draw[ti].leader, revealed_by_team[ti])
+                html_temp = html_temp.replace("team-card", "team-card highlight", 1)
+                team_placeholders[ti].markdown(html_temp, unsafe_allow_html=True)
+                time.sleep(max(0.0, highlight_sec))
+                team_placeholders[ti].markdown(
+                    build_team_card_html(teams_draw[ti].index, teams_draw[ti].leader, revealed_by_team[ti]),
+                    unsafe_allow_html=True,
+                )
+                # 전체 속도 조절(사용자 설정)
+                time.sleep(max(0.0, interval_sec))
+            spotlight.empty()
+            status_ph.success("추첨 완료!")
+            st.session_state["reveal_pending"] = False
+        else:
+            # 애니메이션 없이 전체 멤버 즉시 렌더
+            for i in range(8):
+                team_placeholders[i].markdown(
+                    build_team_card_html(teams_draw[i].index, teams_draw[i].leader, teams_draw[i].members),
+                    unsafe_allow_html=True,
+                )
+            status_ph.success("추첨 완료!")
 
         # 요약 통계
         st.divider()
         cols_stat = st.columns(4)
         for i, col in enumerate(cols_stat):
-            t = teams[i]
+            t = teams_draw[i]
             with col:
                 st.caption(
                     f"Team {t.index + 1}: 총 {1 + len(t.members)}명 (OB:{sum(1 for m in t.members if m.group=='ob')}, YB:{sum(1 for m in t.members if m.group=='yb')}, Girls:{sum(1 for m in t.members if m.group=='girls')})"
                 )
         cols_stat2 = st.columns(4)
         for i, col in enumerate(cols_stat2):
-            t = teams[4 + i]
+            t = teams_draw[4 + i]
             with col:
                 st.caption(
                     f"Team {t.index + 1}: 총 {1 + len(t.members)}명 (OB:{sum(1 for m in t.members if m.group=='ob')}, YB:{sum(1 for m in t.members if m.group=='yb')}, Girls:{sum(1 for m in t.members if m.group=='girls')})"
                 )
 
         # 엑셀 다운로드
-        xlsx_bytes = export_to_excel_bytes(teams)
+        xlsx_bytes = export_to_excel_bytes(teams_draw)
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         st.download_button(
             label="엑셀 다운로드",
             data=xlsx_bytes,
             file_name=f"draw_result_{ts}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download_button_draw",
         )
-
         st.balloons()
 
-    except Exception as e:
-        status_ph.empty()
-        st.error(str(e))
-else:
-    status_ph.empty()
-    st.info("CSV를 업로드하거나 기본 파일을 사용한 후, '추첨 시작'을 눌러주세요.")
