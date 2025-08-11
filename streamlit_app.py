@@ -57,6 +57,12 @@ class Team:
         return [self.leader] + self.members
 
 
+@dataclass
+class Room:
+    index: int
+    members: List[Member] = field(default_factory=list)
+
+
 def read_leaders_csv_from_bytes(data: bytes) -> List[Member]:
     leaders: List[Member] = []
     f = io.StringIO(data.decode("utf-8"))
@@ -234,6 +240,7 @@ def assign_members_to_teams(
 
     # 특별 룰: 특정 두 사람은 같은 팀이 되지 않도록 스왑으로 조정
     enforce_exclusion_pairs(teams, pairs=[("노시현", "배연경")])
+    enforce_exclusion_pairs(teams, pairs=[("노시현", "이진원")])
 
     return teams
 
@@ -346,6 +353,40 @@ def export_to_excel_bytes(teams: List[Team]) -> bytes:
     return bio.read()
 
 
+def export_rooms_to_excel_bytes(male_rooms: List["Room"], female_rooms: List["Room"]) -> bytes:
+    wb = Workbook()
+    ws_m = wb.active
+    ws_m.title = "Rooms_M"
+    ws_f = wb.create_sheet("Rooms_F")
+    ws_flat = wb.create_sheet("FlatRooms")
+
+    # Rooms_M
+    ws_m.append(["room", "name", "group", "gender"])
+    for r in male_rooms:
+        for mem in r.members:
+            ws_m.append([r.index + 1, mem.name, mem.group, mem.gender])
+
+    # Rooms_F
+    ws_f.append(["room", "name", "group", "gender"])
+    for r in female_rooms:
+        for mem in r.members:
+            ws_f.append([r.index + 1, mem.name, mem.group, mem.gender])
+
+    # FlatRooms
+    ws_flat.append(["gender_block", "room", "name", "group", "gender"])
+    for r in male_rooms:
+        for mem in r.members:
+            ws_flat.append(["M", r.index + 1, mem.name, mem.group, mem.gender])
+    for r in female_rooms:
+        for mem in r.members:
+            ws_flat.append(["F", r.index + 1, mem.name, mem.group, mem.gender])
+
+    bio = io.BytesIO()
+    wb.save(bio)
+    bio.seek(0)
+    return bio.read()
+
+
 def read_default_or_upload(label: str, default_path: Path) -> bytes:
     uploaded = st.file_uploader(f"{label} CSV 업로드", type=["csv"], key=label)
     if uploaded is not None:
@@ -376,7 +417,7 @@ st.markdown(
     .leader-label{display:inline-flex;align-items:center;justify-content:center;width:64px;padding:2px 8px;margin:0;border-radius:999px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;background:#fde68a;border:1px solid #f59e0b;color:#78350f}
     .count-chip{background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:3px 10px;font-size:12px;margin-left:6px;color:#111}
     .badge{display:inline-flex;align-items:center;justify-content:center;width:64px;padding:2px 8px;border-radius:999px;color:#fff;font-size:12px}
-    .badge-ob{background:#1f77b4}.badge-yb{background:#2ca02c}.badge-girls{background:#d62728}
+    .badge-ob{background:#1f77b4}.badge-yb{background:#2ca02c}.badge-girls{background:#d62728}.badge-leader{background:#7c3aed}
     @keyframes glow{from{box-shadow:0 0 0 0 rgba(245,158,11,.0)}to{box-shadow:0 0 0 6px rgba(245,158,11,.15)}}
     .spotlight{background:linear-gradient(135deg,#f0f9ff,#e9d5ff);border:1px solid #e5e7eb;border-radius:14px;padding:16px 18px;margin:8px 0;text-align:center;box-shadow:0 8px 24px rgba(15,23,42,.06)}
     .spotlight .label{font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
@@ -418,19 +459,115 @@ def build_team_card_html(team_idx: int, leader: Member, members: List[Member]) -
     )
 
 
+def build_room_card_html(room_idx: int, members: List[Member], title_prefix: str = "Room") -> str:
+    members_html = "\n".join(member_item_html(m) for m in members)
+    return (
+        f'<div class="team-card">'
+        f'  <div class="team-header">'
+        f'    <div class="team-title">{title_prefix} {room_idx + 1}</div>'
+        f'  </div>'
+        f'  <div class="member-list">{members_html}</div>'
+        f'</div>'
+    )
+
+
+def assign_rooms(
+    leaders: List[Member],
+    ob_list: List[Member],
+    yb_list: List[Member],
+    girls_list: List[Member],
+    room_size: int = 4,
+    seed: Optional[int] = None,
+) -> Tuple[List[Room], List[Room]]:
+    if seed is None:
+        seed = int(time.time() * 1000) % (2**32 - 1)
+    rng = random.Random(seed)
+
+    male_leaders = [m for m in leaders if m.gender == "M"]
+    female_leaders = [m for m in leaders if m.gender == "F"]
+
+    # 중복 제거: 리더 우선, 그 다음 기존 그룹
+    def dedup_by_name(preferred: List[Member], others: List[Member]) -> List[Member]:
+        name_to_member: Dict[str, Member] = {}
+        for m in preferred:
+            if m.name.strip():
+                name_to_member.setdefault(m.name, m)
+        for m in others:
+            if m.name.strip() and m.name not in name_to_member:
+                name_to_member[m.name] = m
+        return list(name_to_member.values())
+
+    male_pool = dedup_by_name(male_leaders, ob_list + yb_list)
+    female_pool = dedup_by_name(female_leaders, girls_list)
+
+    rng.shuffle(male_pool)
+    rng.shuffle(female_pool)
+
+    def build_room_sizes(total: int, preferred_size: int) -> List[int]:
+        if total <= 0:
+            return []
+        if total < 3:
+            return [total]
+        k = total // preferred_size
+        r = total % preferred_size
+        sizes: List[int] = []
+        if r == 0:
+            sizes = [preferred_size] * k
+        elif r == 3:
+            sizes = [preferred_size] * k + [3]
+        elif r == 2:
+            if k >= 1:
+                sizes = [preferred_size] * (k - 1) + [3, 3]
+            else:
+                sizes = [2]
+        elif r == 1:
+            if k >= 2:
+                sizes = [preferred_size] * (k - 2) + [3, 3, 3]
+            elif k == 1:
+                sizes = [3, 2]
+            else:
+                sizes = [1]
+        return sizes
+
+    def compose_rooms(members: List[Member], preferred_size: int) -> List[Room]:
+        sizes = build_room_sizes(len(members), preferred_size)
+        rooms: List[Room] = []
+        cursor = 0
+        for sz in sizes:
+            rooms.append(Room(index=len(rooms), members=members[cursor: cursor + sz]))
+            cursor += sz
+        return rooms
+
+    return compose_rooms(male_pool, room_size), compose_rooms(female_pool, room_size)
+
+
 st.title("조 추첨기")
 
 # 세션 상태 초기화
-for _k in ["leaders_bytes", "ob_bytes", "yb_bytes", "girls_bytes", "seed_str", "teams_result"]:
+for _k in [
+    "leaders_bytes",
+    "ob_bytes",
+    "yb_bytes",
+    "girls_bytes",
+    "seed_str",
+    "teams_result",
+    "rooms_result_m",
+    "rooms_result_f",
+    "rooms_seed_str",
+    "rooms_reveal_pending",
+]:
     st.session_state.setdefault(_k, None)
 
-tab_settings, tab_draw = st.tabs(["설정", "추첨/결과"]) 
+tab_settings, tab_draw, tab_rooms = st.tabs(["설정", "조 추첨", "룸메이트"]) 
 
 with tab_settings:
     st.subheader("설정")
     st.caption("CSV는 UTF-8 인코딩 권장. 헤더: leaders=name,gender / ob,yb,girls=name")
     st.session_state["seed_str"] = st.text_input(
         "Seed (선택)", value=st.session_state.get("seed_str") or ""
+    )
+    st.session_state["rooms_seed_str"] = st.text_input(
+        "Room Seed (선택)", value=st.session_state.get("rooms_seed_str") or ""
     )
     col_t1, col_t2 = st.columns(2)
     with col_t1:
@@ -467,7 +604,7 @@ with tab_settings:
         st.warning(str(e))
 
 with tab_draw:
-    st.subheader("추첨/결과")
+    st.subheader("조 추첨")
     status_ph = st.empty()
     if st.button("추첨 실행", type="primary"):
         try:
@@ -602,3 +739,178 @@ with tab_draw:
         )
         st.balloons()
 
+
+with tab_rooms:
+    st.subheader("룸메이트 배정 (4인 1실, 성별 분리)")
+    st.caption("리더 여부와 무관하게 성별을 기준으로 4인실로 배정합니다. 업로드한 CSV(리더/OB/YB/Girls)를 그대로 재사용합니다.")
+
+    # 옵션: 방 크기(기본 4). 시드는 설정 탭(Room Seed) 사용
+    room_size = st.number_input("방 정원", min_value=2, max_value=6, value=4, step=1)
+
+    col_rooms_actions = st.columns(2)
+    status_rooms = st.empty()
+    with col_rooms_actions[0]:
+        if st.button("룸메이트 배정 실행", type="primary"):
+            try:
+                leaders_bytes = st.session_state.get("leaders_bytes") or read_csv_from_disk(DATA_DIR / "leaders.csv")
+                ob_bytes = st.session_state.get("ob_bytes") or read_csv_from_disk(DATA_DIR / "ob.csv")
+                yb_bytes = st.session_state.get("yb_bytes") or read_csv_from_disk(DATA_DIR / "yb.csv")
+                girls_bytes = st.session_state.get("girls_bytes") or read_csv_from_disk(DATA_DIR / "girls.csv")
+
+                leaders_all = read_leaders_csv_from_bytes(leaders_bytes) if leaders_bytes else []
+                ob_list = read_names_csv_from_bytes(ob_bytes, group="ob", gender="M") if ob_bytes else []
+                yb_list = read_names_csv_from_bytes(yb_bytes, group="yb", gender="M") if yb_bytes else []
+                girls_list = read_names_csv_from_bytes(girls_bytes, group="girls", gender="F") if girls_bytes else []
+
+                # 시드 처리: 설정 탭의 Room Seed 사용
+                seed_val_rooms: Optional[int] = None
+                seed_text = (st.session_state.get("rooms_seed_str") or "").strip()
+                if seed_text:
+                    try:
+                        seed_val_rooms = int(seed_text)
+                    except Exception:
+                        seed_val_rooms = None
+
+                rooms_m, rooms_f = assign_rooms(
+                    leaders=leaders_all,
+                    ob_list=ob_list,
+                    yb_list=yb_list,
+                    girls_list=girls_list,
+                    room_size=int(room_size),
+                    seed=seed_val_rooms,
+                )
+                st.session_state["rooms_result_m"] = rooms_m
+                st.session_state["rooms_result_f"] = rooms_f
+                st.session_state["rooms_reveal_pending"] = True
+                status_rooms.info("룸메이트 배정 중…")
+            except Exception as e:
+                status_rooms.error(str(e))
+
+    rooms_m = st.session_state.get("rooms_result_m")
+    rooms_f = st.session_state.get("rooms_result_f")
+
+    if rooms_m or rooms_f:
+        st.divider()
+        spotlight_rooms = st.empty()
+
+        # 남자 방 자리(빈 카드 먼저)
+        male_room_placeholders: List[st.delta_generator.DeltaGenerator] = []
+        if rooms_m:
+            st.markdown("### 남자 방")
+            cols_m = st.columns(4)
+            for i, r in enumerate(rooms_m):
+                with cols_m[i % 4]:
+                    ph = st.empty()
+                    male_room_placeholders.append(ph)
+            for i, r in enumerate(rooms_m):
+                male_room_placeholders[i].markdown(
+                    build_room_card_html(r.index, [], title_prefix="Room(M)"),
+                    unsafe_allow_html=True,
+                )
+
+        # 여자 방 자리(빈 카드 먼저)
+        female_room_placeholders: List[st.delta_generator.DeltaGenerator] = []
+        if rooms_f:
+            st.markdown("### 여자 방")
+            cols_f = st.columns(4)
+            for i, r in enumerate(rooms_f):
+                with cols_f[i % 4]:
+                    ph = st.empty()
+                    female_room_placeholders.append(ph)
+            for i, r in enumerate(rooms_f):
+                female_room_placeholders[i].markdown(
+                    build_room_card_html(r.index, [], title_prefix="Room(F)"),
+                    unsafe_allow_html=True,
+                )
+
+        highlight_sec = float(st.session_state.get("highlight_sec") or 0.15)
+        interval_sec = float(st.session_state.get("interval_sec") or 0.24)
+
+        if st.session_state.get("rooms_reveal_pending"):
+            # 전개 순서(M/F 섞어서)
+            reveal_order: List[Tuple[str, int, Member]] = []
+            if rooms_m:
+                for i, r in enumerate(rooms_m):
+                    for m in r.members:
+                        reveal_order.append(("M", i, m))
+            if rooms_f:
+                for i, r in enumerate(rooms_f):
+                    for m in r.members:
+                        reveal_order.append(("F", i, m))
+
+            # 시드 기반 셔플(설정의 Room Seed)
+            seed_text = (st.session_state.get("rooms_seed_str") or "").strip()
+            try:
+                seed_val_for_reveal = int(seed_text) if seed_text else None
+            except Exception:
+                seed_val_for_reveal = None
+            rng = random.Random(seed_val_for_reveal if seed_val_for_reveal is not None else int(time.time()))
+            rng.shuffle(reveal_order)
+
+            revealed_m: List[List[Member]] = [[] for _ in range(len(rooms_m or []))]
+            revealed_f: List[List[Member]] = [[] for _ in range(len(rooms_f or []))]
+
+            for _, (gender_block, idx, mem) in enumerate(reveal_order):
+                spotlight_rooms.markdown(
+                    f"<div class='spotlight'><div class='label'>Who's next?</div><strong>{mem.name}</strong></div>",
+                    unsafe_allow_html=True,
+                )
+                if gender_block == "M" and rooms_m:
+                    revealed_m[idx].append(mem)
+                    html_temp = build_room_card_html(rooms_m[idx].index, revealed_m[idx], title_prefix="Room(M)")
+                    html_temp = html_temp.replace("team-card", "team-card highlight", 1)
+                    male_room_placeholders[idx].markdown(html_temp, unsafe_allow_html=True)
+                    time.sleep(max(0.0, highlight_sec))
+                    male_room_placeholders[idx].markdown(
+                        build_room_card_html(rooms_m[idx].index, revealed_m[idx], title_prefix="Room(M)"),
+                        unsafe_allow_html=True,
+                    )
+                elif gender_block == "F" and rooms_f:
+                    revealed_f[idx].append(mem)
+                    html_temp = build_room_card_html(rooms_f[idx].index, revealed_f[idx], title_prefix="Room(F)")
+                    html_temp = html_temp.replace("team-card", "team-card highlight", 1)
+                    female_room_placeholders[idx].markdown(html_temp, unsafe_allow_html=True)
+                    time.sleep(max(0.0, highlight_sec))
+                    female_room_placeholders[idx].markdown(
+                        build_room_card_html(rooms_f[idx].index, revealed_f[idx], title_prefix="Room(F)"),
+                        unsafe_allow_html=True,
+                    )
+                time.sleep(max(0.0, interval_sec))
+
+            spotlight_rooms.empty()
+            status_rooms.success("룸메이트 배정 완료")
+            st.session_state["rooms_reveal_pending"] = False
+        else:
+            # 애니메이션 없이 전체 렌더
+            if rooms_m:
+                for i, r in enumerate(rooms_m):
+                    male_room_placeholders[i].markdown(
+                        build_room_card_html(r.index, r.members, title_prefix="Room(M)"),
+                        unsafe_allow_html=True,
+                    )
+            if rooms_f:
+                for i, r in enumerate(rooms_f):
+                    female_room_placeholders[i].markdown(
+                        build_room_card_html(r.index, r.members, title_prefix="Room(F)"),
+                        unsafe_allow_html=True,
+                    )
+
+        # 요약
+        st.divider()
+        if rooms_m:
+            total_m = sum(len(r.members) for r in rooms_m)
+            st.caption(f"남자: 방 {len(rooms_m)}개, 총 {total_m}명")
+        if rooms_f:
+            total_f = sum(len(r.members) for r in rooms_f)
+            st.caption(f"여자: 방 {len(rooms_f)}개, 총 {total_f}명")
+
+        # 엑셀 다운로드
+        xlsx_rooms = export_rooms_to_excel_bytes(rooms_m or [], rooms_f or [])
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        st.download_button(
+            label="룸메이트 엑셀 다운로드",
+            data=xlsx_rooms,
+            file_name=f"roommates_{ts}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download_button_rooms",
+        )
