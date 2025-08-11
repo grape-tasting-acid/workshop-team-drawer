@@ -266,9 +266,16 @@ st.markdown(
     .roulette .label{font-size:12px;color:#666;margin-bottom:6px}
     .slots{display:flex;justify-content:center;align-items:center;gap:12px;height:calc(100% - 26px)}
     .slot-col{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px;min-width:140px}
-    .roulette-name{font-size:22px;font-weight:800;letter-spacing:.5px;color:#111}
+    .slot-window{height:40px;overflow:hidden;position:relative}
+    .reel-track{display:flex;flex-direction:column;animation:reel-spin var(--dur,0.9s) linear infinite;will-change:transform}
+    .reel-track.slow{animation:reel-slow var(--dur,1.4s) cubic-bezier(.2,.8,.2,1) 1 forwards}
+    .reel-track.stopped{animation:none !important;transform:translateY(0)}
+    .reel-track .roulette-name{padding:0}
+    .roulette-name{font-size:22px;font-weight:800;letter-spacing:.5px;color:#111;height:40px;line-height:40px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     @keyframes pulse{from{transform:scale(1);box-shadow:0 0 0 rgba(0,0,0,0)}to{transform:scale(1.02);box-shadow:0 6px 20px rgba(0,0,0,.06)}}
     @keyframes glow{from{box-shadow:0 0 0 0 rgba(245,158,11,.0)}to{box-shadow:0 0 0 6px rgba(245,158,11,.15)}}
+    @keyframes reel-spin{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+    @keyframes reel-slow{from{transform:translateY(0)}to{transform:translateY(-50%)}}
     .slots-row{display:flex;align-items:stretch;justify-content:center;gap:16px;margin:12px 0 20px}
     .slots-row .roulette, .slots-row .team-slot{margin:0}
     .team-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#fff7ed,#eef2ff);border:1px solid #e5e7eb;border-radius:14px;padding:14px 16px;min-width:180px;animation:pulse .8s ease-in-out infinite alternate;box-sizing:border-box;min-height:140px}
@@ -410,70 +417,144 @@ if st.button("추첨 시작", type="primary"):
                 # 슬롯머신 스타일: 이름 3열 + 팀 슬롯(숫자만) 별도 박스, 같은 행에 배치
                 cycles = 10 + slowmo_factor * 3
                 team_target_num = teams[ti].index + 1
-                for k in range(cycles):
-                    s1 = anim_rng.choice(remaining_names) if remaining_names else mem.name
-                    s2 = anim_rng.choice(remaining_names) if remaining_names else mem.name
-                    s3 = anim_rng.choice(remaining_names) if remaining_names else mem.name
-                    tnum = str(anim_rng.randint(1,8))
-                    # 점점 실제 결과에 수렴
-                    if k > cycles * 0.6:
-                        if k % 2 == 0:
-                            s2 = mem.name
-                        if k % 3 == 0:
-                            tnum = str(team_target_num)
-                    spotlight_bar.markdown(
-                        f"""
-                        <div class='slots-row'>
-                          <div class='roulette' style='width:520px'>
-                            <div class='label'>Who's next?</div>
-                            <div class='slots'>
-                              <div class='slot-col'><div class='roulette-name'>🎲 {s1}</div></div>
-                              <div class='slot-col'><div class='roulette-name'>🎲 {s2}</div></div>
-                              <div class='slot-col'><div class='roulette-name'>🎲 {s3}</div></div>
-                            </div>
-                          </div>
-                          <div class='team-slot' style='width:220px'>
-                            <div class='label'>Which team?</div>
-                            <div class='team-name'>{tnum}</div>
-                          </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                    time.sleep(max(0.03, (speed_ms / 1000) / max(1, 6 - slowmo_factor)))
-                # 최종 확정: 777처럼 세 칸 동일 + 팀 슬롯 확정, 잭팟 애니메이션
-                # 잭팟 + 컨페티 파티클 18개 렌더
-                particles = []
-                for i in range(18):
-                    dx = anim_rng.randint(-160, 160)
-                    dy = anim_rng.randint(-80, 140)
-                    size = anim_rng.randint(6, 12)
-                    hue = anim_rng.randint(0, 360)
-                    delay = anim_rng.randint(0, 200)
-                    particles.append(
-                        f"<span class='particle' style='--dx:{dx}px;--dy:{dy}px;--size:{size}px;--hue:{hue};--delay:{delay}ms'></span>"
-                    )
-                particles_html = "".join(particles)
-                spotlight_bar.markdown(
-                    f"""
-                    <div class='slots-row'>
-                      <div class='roulette jackpot' style='width:520px'>
-                        <div class='particles'>{particles_html}</div>
-                        <div class='label'>Selected!</div>
-                        <div class='slots'>
-                          <div class='slot-col'><div class='roulette-name'>🎉 {mem.name}</div></div>
-                          <div class='slot-col'><div class='roulette-name'>🎉 {mem.name}</div></div>
-                          <div class='slot-col'><div class='roulette-name'>🎉 {mem.name}</div></div>
-                        </div>
-                      </div>
-                      <div class='team-slot' style='width:220px'>
-                        <div class='label'>Which team?</div>
-                        <div class='team-name'>{team_target_num}</div>
-                      </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+                # 슬롯 리본이 굴러가는 연속 애니메이션 (한 번 렌더 후 지정 시간 대기)
+                # 각 릴에 실제 이름 목록을 사용하여 시퀀스 구성
+                def build_items_html(pool: List[str], size: int = 14) -> str:
+                    if not pool:
+                        pool = [mem.name]
+                    items = [anim_rng.choice(pool) for _ in range(size)]
+                    # 후보의 실제 당첨자 이름을 가끔 섞어 노출
+                    for _ in range(max(1, size // 4)):
+                        items[anim_rng.randrange(size)] = mem.name
+                    items_html = "".join(f"<div class='roulette-name'>🎲 {x}</div>" for x in items)
+                    # 무한루프 자연스러움을 위해 2회 반복
+                    return items_html + items_html
+
+                def build_nums_html(size: int = 8) -> str:
+                    nums = [str(anim_rng.randint(1,8)) for _ in range(size)]
+                    # 가끔 실제 팀 번호 힌트 노출
+                    for _ in range(max(1, size // 5)):
+                        nums[anim_rng.randrange(size)] = str(team_target_num)
+                    nums_html = "".join(f"<div class='roulette-name'>{n}</div>" for n in nums)
+                    return nums_html + nums_html
+
+                dur1 = max(0.7, (speed_ms / 1000) * (1.4 + 0.25 * slowmo_factor))
+                dur2 = dur1 * 1.12
+                dur3 = dur1 * 1.24
+                dur_team = dur1 * 1.05
+
+                col1 = f"<div class='slot-col'><div class='slot-window'><div class='reel-track' style='animation-duration:{dur1:.2f}s'>{build_items_html(remaining_names)}</div></div></div>"
+                col2 = f"<div class='slot-col'><div class='slot-window'><div class='reel-track' style='animation-duration:{dur2:.2f}s'>{build_items_html(remaining_names)}</div></div></div>"
+                col3 = f"<div class='slot-col'><div class='slot-window'><div class='reel-track' style='animation-duration:{dur3:.2f}s'>{build_items_html(remaining_names)}</div></div></div>"
+                team_reel = f"<div class='slot-window'><div class='reel-track' style='animation-duration:{dur_team:.2f}s'>{build_nums_html(10)}</div></div>"
+
+                html_spin = (
+                    f"<div class='slots-row'>"
+                    f"<div class='roulette' style='width:520px'>"
+                    f"<div class='label'>Who's next?</div>"
+                    f"<div class='slots'>{col1}{col2}{col3}</div>"
+                    f"</div>"
+                    f"<div class='team-slot' style='width:220px'>"
+                    f"<div class='label'>Which team?</div>"
+                    f"{team_reel}"
+                    f"</div>"
+                    f"</div>"
                 )
+                spotlight_bar.markdown(html_spin, unsafe_allow_html=True)
+                time.sleep(max(dur1, dur2, dur3, dur_team) + 0.1)
+                # 감속 단계: 같은 릴을 느리게 1회 재생하여 멈추는 느낌 연출 (자연스러운 정지 위치 = 당첨자/팀)
+                def build_items_html_to_target(pool: List[str], target: str, size: int = 14) -> str:
+                    if not pool:
+                        pool = [target]
+                    base = [anim_rng.choice(pool) for _ in range(size)]
+                    for _ in range(max(1, size // 5)):
+                        base[anim_rng.randrange(size)] = target
+                    seq = base + base
+                    seq[size] = target  # 절반 지점에서 멈출 때 맨 위가 target이 되도록
+                    return "".join(f"<div class='roulette-name'>🎲 {x}</div>" for x in seq)
+
+                def build_nums_html_to_target(target: str, size: int = 10) -> str:
+                    base = [str(anim_rng.randint(1,8)) for _ in range(size)]
+                    for _ in range(max(1, size // 5)):
+                        base[anim_rng.randrange(size)] = target
+                    seq = base + base
+                    seq[size] = target
+                    return "".join(f"<div class='roulette-name'>{x}</div>" for x in seq)
+
+                slow1 = dur1 * (1.6 + 0.15 * slowmo_factor)
+                slow2 = dur2 * (1.7 + 0.15 * slowmo_factor)
+                slow3 = dur3 * (1.8 + 0.15 * slowmo_factor)
+                slow_team = dur_team * (1.65 + 0.15 * slowmo_factor)
+
+                col1_html = build_items_html_to_target(remaining_names, mem.name)
+                col2_html = build_items_html_to_target(remaining_names, mem.name)
+                col3_html = build_items_html_to_target(remaining_names, mem.name)
+                team_html = build_nums_html_to_target(str(team_target_num))
+
+                def render_spin(col1, col2, col3, team_part, jackpot=False):
+                    particles_html = ""
+                    roulette_cls = "roulette"
+                    if jackpot:
+                        # 잔잔한 축하 효과만 추가 (레이아웃 유지)
+                        parts = []
+                        for i in range(18):
+                            dx = anim_rng.randint(-160, 160)
+                            dy = anim_rng.randint(-80, 140)
+                            size = anim_rng.randint(6, 12)
+                            hue = anim_rng.randint(0, 360)
+                            delay = anim_rng.randint(0, 200)
+                            parts.append(
+                                f"<span class='particle' style='--dx:{dx}px;--dy:{dy}px;--size:{size}px;--hue:{hue};--delay:{delay}ms'></span>"
+                            )
+                        particles_html = "<div class='particles'>" + "".join(parts) + "</div>"
+                        roulette_cls = "roulette jackpot"
+                    html = (
+                        f"<div class='slots-row'>"
+                        f"<div class='{roulette_cls}' style='width:520px'>"
+                        f"{particles_html}"
+                        f"<div class='label'>Who's next?</div>"
+                        f"<div class='slots'>{col1}{col2}{col3}</div>"
+                        f"</div>"
+                        f"<div class='team-slot' style='width:220px'>"
+                        f"<div class='label'>Which team?</div>"
+                        f"{team_part}"
+                        f"</div>"
+                        f"</div>"
+                    )
+                    spotlight_bar.markdown(html, unsafe_allow_html=True)
+
+                # 1) 감속 시작: 모두 slow
+                col1_slow = f"<div class='slot-col'><div class='slot-window'><div class='reel-track slow' style='--dur:{slow1:.2f}s'>{col1_html}</div></div></div>"
+                col2_slow = f"<div class='slot-col'><div class='slot-window'><div class='reel-track slow' style='--dur:{slow2:.2f}s'>{col2_html}</div></div></div>"
+                col3_slow = f"<div class='slot-col'><div class='slot-window'><div class='reel-track slow' style='--dur:{slow3:.2f}s'>{col3_html}</div></div></div>"
+                team_slow = f"<div class='slot-window'><div class='reel-track slow' style='--dur:{slow_team:.2f}s'>{team_html}</div></div>"
+                render_spin(col1_slow, col2_slow, col3_slow, team_slow)
+                time.sleep(slow1)
+
+                # 2) 첫 릴 정지
+                col1_stop = f"<div class='slot-col'><div class='slot-window'><div class='reel-track stopped'><div class='roulette-name'>🎲 {mem.name}</div></div></div></div>"
+                rem2 = max(slow2 - slow1, 0.15)
+                rem3 = max(slow3 - slow1, 0.15)
+                rem_team = max(slow_team - slow1, 0.15)
+                col2_slow2 = f"<div class='slot-col'><div class='slot-window'><div class='reel-track slow' style='--dur:{rem2:.2f}s'>{col2_html}</div></div></div>"
+                col3_slow2 = f"<div class='slot-col'><div class='slot-window'><div class='reel-track slow' style='--dur:{rem3:.2f}s'>{col3_html}</div></div></div>"
+                team_slow2 = f"<div class='slot-window'><div class='reel-track slow' style='--dur:{rem_team:.2f}s'>{team_html}</div></div>"
+                render_spin(col1_stop, col2_slow2, col3_slow2, team_slow2)
+                time.sleep(rem2)
+
+                # 3) 두 번째 릴 정지
+                col2_stop = f"<div class='slot-col'><div class='slot-window'><div class='reel-track stopped'><div class='roulette-name'>🎲 {mem.name}</div></div></div></div>"
+                rem3_2 = max(slow3 - slow2, 0.15)
+                rem_team_2 = max(slow_team - slow2, 0.05)
+                col3_slow3 = f"<div class='slot-col'><div class='slot-window'><div class='reel-track slow' style='--dur:{rem3_2:.2f}s'>{col3_html}</div></div></div>"
+                team_slow3 = f"<div class='slot-window'><div class='reel-track slow' style='--dur:{rem_team_2:.2f}s'>{team_html}</div></div>"
+                render_spin(col1_stop, col2_stop, col3_slow3, team_slow3)
+                time.sleep(rem3_2)
+
+                # 4) 마지막 릴 + 팀 정지, 가벼운 축하 이펙트
+                col3_stop = f"<div class='slot-col'><div class='slot-window'><div class='reel-track stopped'><div class='roulette-name'>🎲 {mem.name}</div></div></div></div>"
+                team_stop = f"<div class='slot-window'><div class='reel-track stopped'><div class='roulette-name'>{team_target_num}</div></div></div>"
+                render_spin(col1_stop, col2_stop, col3_stop, team_stop, jackpot=True)
             # 확정 출력(내부 상태에 추가)
             team_lines[ti].append(f"• {mem.name}")
             # 팀 카드 하이라이트 표시를 위해 클래스 토글 버전 렌더
