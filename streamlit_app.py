@@ -9,9 +9,12 @@ from typing import Dict, List, Optional, Tuple
 
 import streamlit as st
 from openpyxl import Workbook
+st.set_page_config(page_title="워크샵 조 추첨기", layout="wide")
 
 DATA_DIR = Path(__file__).parent / "data"
 OUTPUT_DIR = Path(__file__).parent / "output"
+
+GROUP_COLORS = {"ob": "#1f77b4", "yb": "#2ca02c", "girls": "#d62728"}
 
 
 @dataclass
@@ -73,8 +76,6 @@ def compute_balanced_targets(
     yb_count: int,
     girls_count: int,
 ) -> Dict[int, Dict[str, int]]:
-    """팀 총 인원(리더 제외)을 최대한 균등하게 맞추면서,
-    여리더 팀에는 남성 그룹(ob,yb) 우선, 남리더 팀에는 여성 그룹(girls) 우선을 반영한다."""
     num_teams = len(leaders)
     total = ob_count + yb_count + girls_count
     base = total // num_teams
@@ -88,9 +89,8 @@ def compute_balanced_targets(
     others_from_female = [i for i in range(num_teams) if i not in female_leader_idx]
     others_from_male = [i for i in range(num_teams) if i not in male_leader_idx]
 
-    # 우선순위 순회 리스트 구성
-    order_for_male_groups = female_leader_idx + others_from_female  # ob/yb는 여리더 우선
-    order_for_girls = male_leader_idx + others_from_male            # girls는 남리더 우선
+    order_for_male_groups = female_leader_idx + others_from_female
+    order_for_girls = male_leader_idx + others_from_male
 
     def allocate(count: int, order: List[int], key: str) -> None:
         if count <= 0:
@@ -109,7 +109,6 @@ def compute_balanced_targets(
                     if count == 0:
                         break
             if not progressed:
-                # 모든 팀 capacity가 0이면 더 이상 배정 불가
                 break
 
     allocate(ob_count, order_for_male_groups, "ob")
@@ -209,14 +208,72 @@ def read_default_or_upload(label: str, default_path: Path) -> bytes:
     return read_csv_from_disk(default_path)
 
 
-st.set_page_config(page_title="워크샵 조 추첨기 (웹)", layout="wide")
+def badge_html(group: str) -> str:
+    color = GROUP_COLORS.get(group, "#666")
+    return f'<span style="background:{color};color:#fff;padding:2px 8px;border-radius:12px;font-size:12px">{group}</span>'
+
+# 전역 스타일(CSS)
+st.markdown(
+    """
+    <style>
+    .team-card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;margin-bottom:10px}
+    .team-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .team-title{font-weight:700;font-size:18px}
+    .leader-chip{background:#eef2ff;border:1px solid #c7d2fe;color:#1f2937;border-radius:8px;padding:6px 8px;margin-bottom:8px;display:inline-block}
+    .member-list{display:flex;flex-direction:column;gap:6px}
+    .member-item{display:flex;align-items:center;gap:8px}
+    .count-chip{background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:3px 10px;font-size:12px;margin-left:6px;color:#111}
+    .badge{padding:2px 8px;border-radius:999px;color:#fff;font-size:12px}
+    .badge-ob{background:#1f77b4}.badge-yb{background:#2ca02c}.badge-girls{background:#d62728}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+def group_badge(group: str) -> str:
+    cls = f"badge badge-{group}"
+    return f'<span class="{cls}">{group}</span>'
+
+def member_item_html(mem: Member) -> str:
+    return f'<div class="member-item"><span>{mem.name}</span> {group_badge(mem.group)}</div>'
+
+def build_team_card_html(team_idx: int, leader: Member, members: List[Member]) -> str:
+    total = 1 + len(members)
+    ob_c = sum(1 for m in members if m.group == "ob")
+    yb_c = sum(1 for m in members if m.group == "yb")
+    g_c = sum(1 for m in members if m.group == "girls")
+    members_html = "\n".join(member_item_html(m) for m in members)
+    header_counts = (
+        f'<span class="count-chip">총 {total}명</span>'
+        f'<span class="count-chip">OB {ob_c}</span>'
+        f'<span class="count-chip">YB {yb_c}</span>'
+        f'<span class="count-chip">Girls {g_c}</span>'
+    )
+    return (
+        f'<div class="team-card">'
+        f'  <div class="team-header">'
+        f'    <div class="team-title">Team {team_idx + 1}</div>'
+        f'    <div>{header_counts}</div>'
+        f'  </div>'
+        f'  <div class="leader-chip">👑 Leader: {leader.name}</div>'
+        f'  <div class="member-list">{members_html}</div>'
+        f'</div>'
+    )
+
+
 st.title("워크샵 조 추첨기")
 
-col_seed, col_btns = st.columns([1, 3])
+col_seed, col_opts, col_hint = st.columns([1, 2, 3])
 with col_seed:
     seed_str = st.text_input("Seed (선택)", value="")
-with col_btns:
+with col_opts:
+    dramatic = st.checkbox("드라마틱 모드", True)
+    speed_ms = st.slider("애니메이션 속도(ms, 1인)", 80, 400, 150, 10)
+    max_anim = st.slider("최대 애니메이션 인원", 16, 64, 40, 4)
+with col_hint:
     st.caption("CSV는 UTF-8 인코딩 권장. 헤더: leaders=name,gender / ob,yb,girls=name")
+
+status_ph = st.empty()
 
 leaders_bytes = read_default_or_upload("Leaders", DATA_DIR / "leaders.csv")
 ob_bytes = read_default_or_upload("OB", DATA_DIR / "ob.csv")
@@ -225,6 +282,7 @@ girls_bytes = read_default_or_upload("Girls", DATA_DIR / "girls.csv")
 
 if st.button("추첨 시작", type="primary"):
     try:
+        status_ph.info("추첨 중...")
         leaders = read_leaders_csv_from_bytes(leaders_bytes)
         ob_list = read_names_csv_from_bytes(ob_bytes, group="ob", gender="M")
         yb_list = read_names_csv_from_bytes(yb_bytes, group="yb", gender="M")
@@ -248,26 +306,69 @@ if st.button("추첨 시작", type="primary"):
         seed_val: Optional[int] = int(seed_str) if seed_str.strip() else None
         teams = assign_members_to_teams(leaders, ob_list, yb_list, girls_list, seed=seed_val)
 
-        # 간단한 애니메이션
-        placeholder = st.empty()
-        with placeholder.container():
-            st.subheader("추첨 중...")
-            for _ in range(12):
-                st.progress(_ / 12)
-                time.sleep(0.05)
-        placeholder.empty()
+        # 결과 표시 (2행 그리드 + 드라마틱 모드)
+        status_ph.success("추첨 완료!")
 
-        # 결과 표시 (2행 그리드로 정렬 보장)
-        st.success("추첨 완료!")
+        # 팀 컨테이너 준비 (상단 텍스트 헤더 제거, 카드만 렌더)
+        team_placeholders: List[st.delta_generator.DeltaGenerator] = []
         for row_start in (0, 4):
             cols = st.columns(4)
             for j in range(4):
-                team = teams[row_start + j]
                 with cols[j]:
-                    st.markdown(f"**Team {team.index + 1}**")
-                    st.write(f"Leader: {team.leader.name} ({team.leader.gender})")
-                    for m in team.members:
-                        st.write(f"- {m.name} [{m.group}]")
+                    ph = st.empty()
+                    team_placeholders.append(ph)
+
+        # 라운드로빈 공개 순서 만들기
+        max_len = max(len(t.members) for t in teams)
+        reveal_queue: List[Tuple[int, Member]] = []
+        for r in range(max_len):
+            for i, t in enumerate(teams):
+                if r < len(t.members):
+                    reveal_queue.append((i, t.members[r]))
+
+        # 팀별 누적 HTML
+        team_lines: List[List[str]] = [[] for _ in range(8)]
+
+        def render_team(i: int):
+            html = build_team_card_html(teams[i].index, teams[i].leader, [m for m in teams[i].members if f"• {m.name}" in "\n".join(team_lines[i])])
+            team_placeholders[i].markdown(html, unsafe_allow_html=True)
+
+        # 드라마틱 모드: 일부만 애니메이션, 나머지는 즉시 렌더
+        remaining_names = [m.name for _, m in reveal_queue]
+        for idx, (ti, mem) in enumerate(reveal_queue):
+            if dramatic and idx < max_anim:
+                roll = st.empty()
+                for _ in range(6):
+                    sample = random.choice(remaining_names) if remaining_names else mem.name
+                    roll.markdown(f"🎲 {sample}")
+                    time.sleep(max(0.02, speed_ms / 1000 / 6))
+                roll.empty()
+            # 확정 출력(내부 상태에 추가)
+            team_lines[ti].append(f"• {mem.name}")
+            render_team(ti)
+            if dramatic and idx < max_anim:
+                time.sleep(max(0.01, speed_ms / 1000 * 0.35))
+            try:
+                remaining_names.remove(mem.name)
+            except ValueError:
+                pass
+
+        # 요약 통계
+        st.divider()
+        cols_stat = st.columns(4)
+        for i, col in enumerate(cols_stat):
+            t = teams[i]
+            with col:
+                st.caption(
+                    f"Team {t.index + 1}: 총 {1 + len(t.members)}명 (OB:{sum(1 for m in t.members if m.group=='ob')}, YB:{sum(1 for m in t.members if m.group=='yb')}, Girls:{sum(1 for m in t.members if m.group=='girls')})"
+                )
+        cols_stat2 = st.columns(4)
+        for i, col in enumerate(cols_stat2):
+            t = teams[4 + i]
+            with col:
+                st.caption(
+                    f"Team {t.index + 1}: 총 {1 + len(t.members)}명 (OB:{sum(1 for m in t.members if m.group=='ob')}, YB:{sum(1 for m in t.members if m.group=='yb')}, Girls:{sum(1 for m in t.members if m.group=='girls')})"
+                )
 
         # 엑셀 다운로드
         xlsx_bytes = export_to_excel_bytes(teams)
@@ -279,7 +380,11 @@ if st.button("추첨 시작", type="primary"):
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
+        st.balloons()
+
     except Exception as e:
+        status_ph.empty()
         st.error(str(e))
 else:
+    status_ph.empty()
     st.info("CSV를 업로드하거나 기본 파일을 사용한 후, '추첨 시작'을 눌러주세요.")
