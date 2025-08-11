@@ -230,7 +230,7 @@ def export_to_excel(teams: List[Team], out_dir: Path) -> Path:
 class TeamDrawerApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
-        self.root.title("워크샵 조 추첨기")
+        self.root.title("조 추첨기")
         self.root.geometry("1200x750")
 
         self.seed_var = tk.StringVar()

@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Tuple
 
 import streamlit as st
 from openpyxl import Workbook
-st.set_page_config(page_title="워크샵 조 추첨기", layout="wide")
+st.set_page_config(page_title="조 추첨기", layout="wide")
 
 DATA_DIR = Path(__file__).parent / "data"
 OUTPUT_DIR = Path(__file__).parent / "output"
@@ -97,7 +97,10 @@ def compute_balanced_targets(
     girls_count: int,
     rng: random.Random,
 ) -> Dict[int, Dict[str, int]]:
-    """팀 총 인원(리더 제외)을 최대한 균등하게 맞추되, 분배 순서에 무작위성을 도입한다."""
+    """팀 총 인원(리더 제외)을 최대한 균등하게 맞추되,
+    - girls(여자) 인원은 팀별로 균등하게 분배하고, 여유분은 남리더 팀에 우선 배정한다.
+    - 이후 남성 그룹(ob/yb)을 남리더 우선 순서로 나눠 남은 자리를 채운다.
+    """
     num_teams = len(leaders)
     total = ob_count + yb_count + girls_count
 
@@ -124,6 +127,34 @@ def compute_balanced_targets(
     order_for_male_groups = female_leader_idx + others_from_female  # ob/yb는 여리더 우선
     order_for_girls = male_leader_idx + others_from_male            # girls는 남리더 우선
 
+    # 1) girls를 먼저 팀별로 균등 분배하되, 여유분은 남리더 우선
+    if girls_count > 0:
+        base_g = girls_count // num_teams
+        rem_g = girls_count % num_teams
+        girls_targets = [base_g for _ in range(num_teams)]
+        # 여유분을 남리더 우선 순서대로 배정하되, 해당 팀에 남은 총 수용량이 base_g보다 커야 배정
+        # (총 인원 여유가 없는 팀에 억지로 배정하지 않음)
+        for team_i in order_for_girls:
+            if rem_g <= 0:
+                break
+            if remaining_capacity[team_i] > girls_targets[team_i]:
+                girls_targets[team_i] += 1
+                rem_g -= 1
+        # 혹시 rem_g가 남으면(모든 팀이 여유없었던 경우), 아무 팀이나 수용 가능 팀에 배정
+        if rem_g > 0:
+            for team_i in range(num_teams):
+                if rem_g == 0:
+                    break
+                if remaining_capacity[team_i] > girls_targets[team_i]:
+                    girls_targets[team_i] += 1
+                    rem_g -= 1
+
+        # capacity 차감 및 타겟 반영
+        for i in range(num_teams):
+            allocate_g = min(girls_targets[i], remaining_capacity[i])
+            targets[i]["girls"] = allocate_g
+            remaining_capacity[i] -= allocate_g
+
     def allocate(count: int, order: List[int], key: str) -> None:
         if count <= 0:
             return
@@ -146,9 +177,9 @@ def compute_balanced_targets(
             if not progressed:
                 break
 
+    # 2) 남은 좌석에 ob/yb 배정(남리더 우선 순서)
     allocate(ob_count, order_for_male_groups, "ob")
     allocate(yb_count, order_for_male_groups, "yb")
-    allocate(girls_count, order_for_girls, "girls")
 
     return targets
 
@@ -201,7 +232,88 @@ def assign_members_to_teams(
     for team in teams:
         rng.shuffle(team.members)
 
+    # 특별 룰: 특정 두 사람은 같은 팀이 되지 않도록 스왑으로 조정
+    enforce_exclusion_pairs(teams, pairs=[("노시현", "배연경")])
+
     return teams
+
+
+def enforce_exclusion_pairs(teams: List[Team], pairs: List[Tuple[str, str]]) -> None:
+    name_to_location: Dict[str, Tuple[int, bool, int]] = {}
+
+    def locate(name: str) -> Optional[Tuple[int, bool, int]]:
+        for i, t in enumerate(teams):
+            if t.leader.name == name:
+                return (i, True, -1)
+            for idx, m in enumerate(t.members):
+                if m.name == name:
+                    return (i, False, idx)
+        return None
+
+    def team_has_name(team: Team, name: str) -> bool:
+        if team.leader.name == name:
+            return True
+        return any(m.name == name for m in team.members)
+
+    def try_resolve_pair(a: str, b: str) -> None:
+        loc_a = locate(a)
+        loc_b = locate(b)
+        if not loc_a or not loc_b:
+            return
+        team_a, a_is_leader, a_idx = loc_a
+        team_b, b_is_leader, b_idx = loc_b
+        if team_a != team_b:
+            return  # already satisfied
+
+        conflicted_team = team_a
+        # 우선 멤버 쪽을 이동(리더는 그대로 두는 것을 우선)
+        # 후보 1: a가 멤버이면 a를 이동 시도
+        if not a_is_leader:
+            src_member = teams[conflicted_team].members[a_idx]
+            # 같은 그룹 멤버와 스왑하여 팀별 그룹 수를 유지
+            for j, t in enumerate(teams):
+                if j == conflicted_team:
+                    continue
+                if team_has_name(t, b):
+                    continue  # b가 있는 팀으로 보내지 않음
+                for j_idx, other in enumerate(t.members):
+                    if other.group == src_member.group:
+                        teams[conflicted_team].members[a_idx], t.members[j_idx] = t.members[j_idx], teams[conflicted_team].members[a_idx]
+                        return
+        # 후보 2: b가 멤버이면 b를 이동 시도
+        if not b_is_leader:
+            src_member = teams[conflicted_team].members[b_idx]
+            for j, t in enumerate(teams):
+                if j == conflicted_team:
+                    continue
+                if team_has_name(t, a):
+                    continue
+                for j_idx, other in enumerate(t.members):
+                    if other.group == src_member.group:
+                        teams[conflicted_team].members[b_idx], t.members[j_idx] = t.members[j_idx], teams[conflicted_team].members[b_idx]
+                        return
+        # 그래도 불가하면 마지막 수단: 같은 그룹이 아니더라도 멤버와 스왑(팀 총원만 유지)
+        if not a_is_leader:
+            for j, t in enumerate(teams):
+                if j == conflicted_team:
+                    continue
+                if team_has_name(t, b):
+                    continue
+                if t.members:
+                    teams[conflicted_team].members[a_idx], t.members[0] = t.members[0], teams[conflicted_team].members[a_idx]
+                    return
+        if not b_is_leader:
+            for j, t in enumerate(teams):
+                if j == conflicted_team:
+                    continue
+                if team_has_name(t, a):
+                    continue
+                if t.members:
+                    teams[conflicted_team].members[b_idx], t.members[0] = t.members[0], teams[conflicted_team].members[b_idx]
+                    return
+
+    for a, b in pairs:
+        try_resolve_pair(a, b)
 
 
 def export_to_excel_bytes(teams: List[Team]) -> bytes:
@@ -306,7 +418,7 @@ def build_team_card_html(team_idx: int, leader: Member, members: List[Member]) -
     )
 
 
-st.title("워크샵 조 추첨기")
+st.title("조 추첨기")
 
 # 세션 상태 초기화
 for _k in ["leaders_bytes", "ob_bytes", "yb_bytes", "girls_bytes", "seed_str", "teams_result"]:
