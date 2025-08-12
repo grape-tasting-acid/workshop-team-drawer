@@ -1105,8 +1105,7 @@ with tab_draw:
 
 
 with tab_rooms:
-    st.subheader("룸메이트 배정 (4인 1실, 성별 분리)")
-    st.caption("캡틴 여부와 무관하게 성별을 기준으로 4인실로 배정합니다. 업로드한 CSV(캡틴/Veterans/Rookies/Girls)를 그대로 재사용합니다.")
+    st.subheader("룸메이트 배정")
 
     # 옵션: 방 크기(기본 4). 시드는 설정 탭(Room Seed) 사용
     room_size = st.number_input("방 정원", min_value=2, max_value=6, value=4, step=1)
