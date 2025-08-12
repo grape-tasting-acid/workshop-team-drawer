@@ -962,50 +962,7 @@ for _k in [
 ]:
     st.session_state.setdefault(_k, None)
 
-tab_settings, tab_draw, tab_rooms = st.tabs(["설정", "조 추첨", "룸메이트"]) 
-
-with tab_settings:
-    st.subheader("설정")
-    st.caption("CSV는 UTF-8 인코딩 권장. 헤더: leaders=name,gender / ob,yb,girls=name")
-    st.session_state["seed_str"] = st.text_input(
-        "Seed (선택)", value=st.session_state.get("seed_str") or ""
-    )
-    st.session_state["rooms_seed_str"] = st.text_input(
-        "Room Seed (선택)", value=st.session_state.get("rooms_seed_str") or ""
-    )
-    col_t1, col_t2 = st.columns(2)
-    with col_t1:
-        st.session_state["highlight_sec"] = st.slider(
-            "하이라이트 시간(초)", min_value=0.0, max_value=1.0,
-            value=float(st.session_state.get("highlight_sec") or 0.15), step=0.01
-        )
-    with col_t2:
-        st.session_state["interval_sec"] = st.slider(
-            "노출 텀(초)", min_value=0.0, max_value=1.0,
-            value=float(st.session_state.get("interval_sec") or 0.24), step=0.01
-        )
-    st.divider()
-    st.write("파일 업로드 또는 기본 파일 사용")
-    leaders_bytes = read_default_or_upload("Captains", DATA_DIR / "leaders.csv")
-    ob_bytes = read_default_or_upload("Veterans", DATA_DIR / "ob.csv")
-    yb_bytes = read_default_or_upload("Rookies", DATA_DIR / "yb.csv")
-    girls_bytes = read_default_or_upload("Girls", DATA_DIR / "girls.csv")
-
-    st.session_state["leaders_bytes"] = leaders_bytes
-    st.session_state["ob_bytes"] = ob_bytes
-    st.session_state["yb_bytes"] = yb_bytes
-    st.session_state["girls_bytes"] = girls_bytes
-
-    try:
-        leaders_preview = read_leaders_csv_from_bytes(leaders_bytes) if leaders_bytes else []
-        ob_preview = read_names_csv_from_bytes(ob_bytes, group="ob", gender="M") if ob_bytes else []
-        yb_preview = read_names_csv_from_bytes(yb_bytes, group="yb", gender="M") if yb_bytes else []
-        girls_preview = read_names_csv_from_bytes(girls_bytes, group="girls", gender="F") if girls_bytes else []
-        st.info(
-            f"캡틴 {len(leaders_preview)}명, Veterans {len(ob_preview)}명, Rookies {len(yb_preview)}명, Girls {len(girls_preview)}명"
-        )
-    except Exception as e:
-        st.warning(str(e))
+tab_draw, tab_rooms, tab_settings = st.tabs(["조 추첨", "룸메이트", "설정"]) 
 
 with tab_draw:
     st.subheader("조 추첨")
@@ -1321,3 +1278,47 @@ with tab_rooms:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             key="download_button_rooms",
         )
+
+
+with tab_settings:
+    st.subheader("설정")
+    st.caption("CSV는 UTF-8 인코딩 권장. 헤더: leaders=name,gender / ob,yb,girls=name")
+    st.session_state["seed_str"] = st.text_input(
+        "Seed (선택)", value=st.session_state.get("seed_str") or ""
+    )
+    st.session_state["rooms_seed_str"] = st.text_input(
+        "Room Seed (선택)", value=st.session_state.get("rooms_seed_str") or ""
+    )
+    col_t1, col_t2 = st.columns(2)
+    with col_t1:
+        st.session_state["highlight_sec"] = st.slider(
+            "하이라이트 시간(초)", min_value=0.0, max_value=1.0,
+            value=float(st.session_state.get("highlight_sec") or 0.15), step=0.01
+        )
+    with col_t2:
+        st.session_state["interval_sec"] = st.slider(
+            "노출 텀(초)", min_value=0.0, max_value=1.0,
+            value=float(st.session_state.get("interval_sec") or 0.24), step=0.01
+        )
+    st.divider()
+    st.write("파일 업로드 또는 기본 파일 사용")
+    leaders_bytes = read_default_or_upload("Captains", DATA_DIR / "leaders.csv")
+    ob_bytes = read_default_or_upload("Veterans", DATA_DIR / "ob.csv")
+    yb_bytes = read_default_or_upload("Rookies", DATA_DIR / "yb.csv")
+    girls_bytes = read_default_or_upload("Girls", DATA_DIR / "girls.csv")
+
+    st.session_state["leaders_bytes"] = leaders_bytes
+    st.session_state["ob_bytes"] = ob_bytes
+    st.session_state["yb_bytes"] = yb_bytes
+    st.session_state["girls_bytes"] = girls_bytes
+
+    try:
+        leaders_preview = read_leaders_csv_from_bytes(leaders_bytes) if leaders_bytes else []
+        ob_preview = read_names_csv_from_bytes(ob_bytes, group="ob", gender="M") if ob_bytes else []
+        yb_preview = read_names_csv_from_bytes(yb_bytes, group="yb", gender="M") if yb_bytes else []
+        girls_preview = read_names_csv_from_bytes(girls_bytes, group="girls", gender="F") if girls_bytes else []
+        st.info(
+            f"캡틴 {len(leaders_preview)}명, Veterans {len(ob_preview)}명, Rookies {len(yb_preview)}명, Girls {len(girls_preview)}명"
+        )
+    except Exception as e:
+        st.warning(str(e))
