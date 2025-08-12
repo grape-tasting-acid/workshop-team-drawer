@@ -295,10 +295,9 @@ def assign_members_to_teams(
     enforce_exclusion_pairs(teams, pairs=[("노시현", "배연경")])
     enforce_exclusion_pairs(teams, pairs=[("노시현", "이진원")])
 
-    # 포함 룰: seed가 3의 배수면 이진원-배연경은 같은 팀이 되도록 조정
+    # 포함 룰: 이진원-배연경은 항상 같은 팀이 되도록 조정
     try:
-        if seed is not None and seed % 3 == 0:
-            enforce_inclusion_pair(teams, pair=("이진원", "배연경"))
+        enforce_inclusion_pair(teams, pair=("이진원", "배연경"))
     except Exception:
         pass
 
@@ -523,8 +522,7 @@ def assign_members_to_teams(
         try:
             enforce_exclusion_pairs(teams, pairs=[("노시현", "배연경")])
             enforce_exclusion_pairs(teams, pairs=[("노시현", "이진원")])
-            if seed is not None and seed % 3 == 0:
-                enforce_inclusion_pair(teams, pair=("이진원", "배연경"))
+            enforce_inclusion_pair(teams, pair=("이진원", "배연경"))
         except Exception:
             pass
 
@@ -553,8 +551,7 @@ def assign_members_to_teams(
         try:
             locked_final: set[str] = set()
             # 포함 페어는 반드시 동일 팀 유지 → 둘 다 잠금
-            if seed is not None and seed % 3 == 0:
-                locked_final.update({"이진원", "배연경"})
+            locked_final.update({"이진원", "배연경"})
             # 제외 페어 멤버는 상대 팀과의 상대적 위치만 중요하므로 잠금까지는 불필요하지만, 요청 안정성 위해 포함
             locked_final.update({"노시현"})
             rebuild_ob_yb_exact(locked_final.union(exclude_names))
