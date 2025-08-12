@@ -105,9 +105,8 @@ def compute_balanced_targets(
     rng: random.Random,
 ) -> Dict[int, Dict[str, int]]:
     """팀 총 인원(리더 제외)을 최대한 균등하게 맞추되,
-    각 그룹(ob, yb, girls)별로 팀 간 차이가 최대 1명을 넘지 않도록 보장한다.
-    - 각 그룹을 독립적으로 균등 분배 (base 또는 base+1)
-    - 전체 팀 크기 균등성도 최대한 유지
+    각 그룹(ob, yb, girls)별로 팀 간 차이가 최대 1명을 넘지 않도록 보장하고,
+    전체 팀 크기도 최대 1명 차이 이내로 유지한다.
     """
     num_teams = len(leaders)
     total = ob_count + yb_count + girls_count
@@ -121,63 +120,125 @@ def compute_balanced_targets(
     rng.shuffle(male_leader_idx)
     rng.shuffle(female_leader_idx)
     
-    def allocate_group_strictly_balanced(count: int, key: str, preferred_order: List[int] = None) -> None:
-        """각 그룹을 완전히 균등하게 분배 (최대 1명 차이)"""
-        if count <= 0:
-            return
+    # 1) 전체 팀 크기 목표 설정 (리더 제외 멤버 수)
+    base_team_size = total // num_teams
+    extra_member_count = total % num_teams
+    
+    # 여분 인원을 받을 팀들을 무작위로 선정
+    teams_with_extra = rng.sample(range(num_teams), extra_member_count) if extra_member_count > 0 else []
+    team_size_targets = [base_team_size + (1 if i in teams_with_extra else 0) for i in range(num_teams)]
+    
+    # 2) 각 그룹의 기본 분배량 계산
+    ob_base = ob_count // num_teams
+    ob_remainder = ob_count % num_teams
+    yb_base = yb_count // num_teams  
+    yb_remainder = yb_count % num_teams
+    girls_base = girls_count // num_teams
+    girls_remainder = girls_count % num_teams
+    
+    # 3) 팀별로 그룹 할당 (전체 크기 제약 하에서)
+    for team_idx in range(num_teams):
+        target_size = team_size_targets[team_idx]
+        
+        # 각 그룹의 기본 할당
+        ob_allocation = ob_base
+        yb_allocation = yb_base  
+        girls_allocation = girls_base
+        
+        current_size = ob_allocation + yb_allocation + girls_allocation
+        remaining_capacity = target_size - current_size
+        
+        # 나머지 인원을 우선순위에 따라 배정
+        # Girls 우선 (남성 리더 팀 우선)
+        if girls_remainder > 0 and remaining_capacity > 0 and team_idx in male_leader_idx:
+            girls_allocation += 1
+            girls_remainder -= 1
+            remaining_capacity -= 1
             
-        base = count // num_teams
-        remainder = count % num_teams
+        # YB 우선 (여성 리더 팀 우선)  
+        if yb_remainder > 0 and remaining_capacity > 0 and team_idx in female_leader_idx:
+            yb_allocation += 1
+            yb_remainder -= 1
+            remaining_capacity -= 1
+            
+        # OB 우선 (여성 리더 팀 우선)
+        if ob_remainder > 0 and remaining_capacity > 0 and team_idx in female_leader_idx:
+            ob_allocation += 1
+            ob_remainder -= 1
+            remaining_capacity -= 1
+            
+        targets[team_idx] = {
+            "ob": ob_allocation,
+            "yb": yb_allocation, 
+            "girls": girls_allocation
+        }
+    
+    # 4) 남은 나머지 인원들을 라운드로빈으로 배정
+    remaining_groups = []
+    if girls_remainder > 0:
+        remaining_groups.extend([("girls", male_leader_idx)] * girls_remainder)
+    if yb_remainder > 0:
+        remaining_groups.extend([("yb", female_leader_idx)] * yb_remainder)
+    if ob_remainder > 0:
+        remaining_groups.extend([("ob", female_leader_idx)] * ob_remainder)
         
-        # 각 팀이 받을 기본 수량 설정
-        allocations = [base] * num_teams
+    # 남은 그룹들을 셔플하여 무작위 순서로 배정
+    rng.shuffle(remaining_groups)
+    
+    for group_type, preferred_teams in remaining_groups:
+        # 우선순위 팀들 중에서 여유가 있는 팀 찾기
+        assigned = False
+        for team_idx in preferred_teams:
+            current_total = sum(targets[team_idx].values())
+            if current_total < team_size_targets[team_idx]:
+                targets[team_idx][group_type] += 1
+                assigned = True
+                break
+                
+        # 우선순위 팀에 배정 못했으면 전체 팀에서 여유 있는 곳에 배정
+        if not assigned:
+            for team_idx in range(num_teams):
+                current_total = sum(targets[team_idx].values())
+                if current_total < team_size_targets[team_idx]:
+                    targets[team_idx][group_type] += 1
+                    break
+    
+    # 5) 각 그룹별 균등성 검증 및 조정
+    def rebalance_group_if_needed(group_key: str, preferred_order: List[int]) -> None:
+        group_counts = [targets[i][group_key] for i in range(num_teams)]
+        max_count = max(group_counts)
+        min_count = min(group_counts)
         
-        # 나머지를 받을 팀들 선정 (우선순위 고려)
-        if remainder > 0:
-            if preferred_order:
-                # 우선순위가 있으면 해당 순서대로 배정
-                extra_teams = preferred_order[:remainder]
+        # 2명 이상 차이나면 조정 시도
+        while max_count - min_count >= 2:
+            # 가장 많은 팀에서 가장 적은 팀으로 1명 이동
+            max_team = group_counts.index(max_count)
+            min_team = group_counts.index(min_count)
+            
+            # 전체 팀 크기 제약 확인
+            max_team_total = sum(targets[max_team].values())
+            min_team_total = sum(targets[min_team].values())
+            
+            # 이동 가능한지 확인 (전체 크기 균등성 해치지 않는 범위에서)
+            if (targets[max_team][group_key] > 0 and 
+                max_team_total - 1 >= team_size_targets[max_team] - 1 and
+                min_team_total + 1 <= team_size_targets[min_team] + 1):
+                
+                targets[max_team][group_key] -= 1
+                targets[min_team][group_key] += 1
+                
+                group_counts[max_team] -= 1
+                group_counts[min_team] += 1
+                
+                max_count = max(group_counts)
+                min_count = min(group_counts)
             else:
-                # 우선순위가 없으면 무작위로 선정
-                extra_teams = rng.sample(range(num_teams), remainder)
-            
-            for team_idx in extra_teams:
-                allocations[team_idx] += 1
-        
-        # 목표치에 반영
-        for i in range(num_teams):
-            targets[i][key] = allocations[i]
-
-    # 1) Girls 분배: 완전히 균등하게 분배 (최대 1명 차이 보장)
-    allocate_group_strictly_balanced(girls_count, "girls", male_leader_idx)
-
-    # 2) YB 균등 분배 (여성 리더 팀 우선)
-    yb_preferred_order = female_leader_idx.copy()
-    rng.shuffle(yb_preferred_order)
-    others = [i for i in range(num_teams) if i not in yb_preferred_order]
-    rng.shuffle(others)
-    yb_preferred_order.extend(others)
+                break  # 더 이상 조정할 수 없음
     
-    allocate_group_strictly_balanced(yb_count, "yb", yb_preferred_order)
-
-    # 3) OB 균등 분배 (여성 리더 팀 우선)
-    ob_preferred_order = female_leader_idx.copy()
-    rng.shuffle(ob_preferred_order)
-    others = [i for i in range(num_teams) if i not in ob_preferred_order]
-    rng.shuffle(others)
-    ob_preferred_order.extend(others)
-    
-    allocate_group_strictly_balanced(ob_count, "ob", ob_preferred_order)
-
-    # 4) 전체 팀 크기 균등성 체크 및 미세 조정
-    team_totals = [targets[i]["ob"] + targets[i]["yb"] + targets[i]["girls"] for i in range(num_teams)]
-    min_total = min(team_totals)
-    max_total = max(team_totals)
-    
-    # 팀 크기 차이가 2 이상이면 조정 시도 (하지만 각 그룹 균등성은 유지)
-    if max_total - min_total >= 2:
-        # 과도한 차이가 있는 경우에만 경고 (실제로는 거의 발생하지 않을 것)
-        pass
+    # 각 그룹별 균등성 재조정
+    rebalance_group_if_needed("girls", male_leader_idx)
+    rebalance_group_if_needed("yb", female_leader_idx)  
+    rebalance_group_if_needed("ob", female_leader_idx)
 
     return targets
 
